@@ -1,11 +1,12 @@
-[phases.build]
-cmds = ["npm ci", "npm run build"]
-
+# Nixpacks configuration for EasyPanel
 [phases.setup]
-nixPkgs = ["nodejs_20", "nginx"]
+nixPkgs = ["nodejs_20"]
+
+[phases.install]
+cmds = ["npm ci"]
+
+[phases.build]
+cmds = ["npm run build"]
 
 [start]
-cmd = "nginx -c /app/nginx.conf -g 'daemon off;'"
-
-[staticAssets]
-directory = "dist"
+cmd = "npx serve -s dist -l 80"
