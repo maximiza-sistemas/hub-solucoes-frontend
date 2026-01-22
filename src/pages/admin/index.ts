@@ -1,0 +1,6 @@
+export { MunicipiosPage } from './municipios-page'
+export { MunicipioFormPage } from './municipio-form-page'
+export { SolucoesPage } from './solucoes-page'
+export { SolucaoFormPage } from './solucao-form-page'
+export { UsuariosPage } from './usuarios-page'
+export { DashboardPage } from './dashboard-page'

@@ -1,0 +1,5 @@
+export { MunicipioDashboardPage } from './dashboard-page'
+export { MunicipioSolucoesPage } from './solucoes-page'
+export { MunicipioAlunosPage } from './alunos-page'
+export { MunicipioUsuariosPage } from './usuarios-page'
+export { MunicipioEscolasPage } from './escolas-page'
