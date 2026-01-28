@@ -66,6 +66,7 @@ export interface Aluno {
     dataNascimento: string
     cpf?: string
     matricula: string
+    escolaId?: string
     escola: string
     serie: string
     turma: string

@@ -7,10 +7,12 @@ export function MunicipiosPage() {
         municipios,
         usuarios,
         alunos,
+        escolas,
         fetchMunicipios,
         fetchSolucoes,
         fetchUsuarios,
         fetchAlunos,
+        fetchEscolas,
         getSolucoesByMunicipio,
         updateMunicipio,
         deleteMunicipio
@@ -23,7 +25,8 @@ export function MunicipiosPage() {
         fetchSolucoes()
         fetchUsuarios()
         fetchAlunos()
-    }, [fetchMunicipios, fetchSolucoes, fetchUsuarios, fetchAlunos])
+        fetchEscolas()
+    }, [fetchMunicipios, fetchSolucoes, fetchUsuarios, fetchAlunos, fetchEscolas])
     const [searchTerm, setSearchTerm] = useState('')
     const [statusFilter, setStatusFilter] = useState<string>('todos')
 
@@ -83,8 +86,9 @@ export function MunicipiosPage() {
     const getMunicipioStats = (municipioId: string) => {
         const userCount = usuarios.filter(u => u.municipioId === municipioId).length
         const alunoCount = alunos.filter(a => a.municipioId === municipioId).length
+        const escolaCount = escolas.filter(e => e.municipioId === municipioId).length
         const solucaoCount = getSolucoesByMunicipio(municipioId).length
-        return { userCount, alunoCount, solucaoCount }
+        return { userCount, alunoCount, escolaCount, solucaoCount }
     }
 
     const handleMunicipioClick = (municipioId: string) => {
@@ -327,15 +331,19 @@ export function MunicipiosPage() {
                                     </div>
 
                                     <div className="row text-center border-top pt-3 g-0">
-                                        <div className="col-4 border-end">
+                                        <div className="col-3 border-end">
                                             <p className="h5 fw-bold text-primary mb-0">{stats.solucaoCount}</p>
                                             <p className="text-muted small mb-0">Soluções</p>
                                         </div>
-                                        <div className="col-4 border-end">
+                                        <div className="col-3 border-end">
+                                            <p className="h5 fw-bold text-warning mb-0">{stats.escolaCount}</p>
+                                            <p className="text-muted small mb-0">Escolas</p>
+                                        </div>
+                                        <div className="col-3 border-end">
                                             <p className="h5 fw-bold text-success mb-0">{stats.userCount}</p>
                                             <p className="text-muted small mb-0">Usuários</p>
                                         </div>
-                                        <div className="col-4">
+                                        <div className="col-3">
                                             <p className="h5 fw-bold text-info mb-0">{stats.alunoCount}</p>
                                             <p className="text-muted small mb-0">Alunos</p>
                                         </div>

@@ -4,3 +4,7 @@ export { SolucoesPage } from './solucoes-page'
 export { SolucaoFormPage } from './solucao-form-page'
 export { UsuariosPage } from './usuarios-page'
 export { DashboardPage } from './dashboard-page'
+export { PerfilPage } from './perfil-page'
+export { ConfiguracoesPage } from './configuracoes-page'
+
+

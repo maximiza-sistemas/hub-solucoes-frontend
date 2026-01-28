@@ -18,6 +18,8 @@ import {
   SolucaoFormPage,
   UsuariosPage,
   DashboardPage,
+  PerfilPage,
+  ConfiguracoesPage,
 } from '@/pages/admin'
 
 // Municipio Pages
@@ -140,6 +142,18 @@ export default function App() {
               <AdminRoute>
                 <UsuariosPage />
               </AdminRoute>
+            }
+          />
+          <Route
+            path="/admin/perfil"
+            element={
+              <PerfilPage />
+            }
+          />
+          <Route
+            path="/admin/configuracoes"
+            element={
+              <ConfiguracoesPage />
             }
           />
 
