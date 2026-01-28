@@ -1,6 +1,42 @@
 import { Link } from 'react-router-dom'
+import { useEffect, useRef } from 'react'
 
 export function LandingPage() {
+    const observerRef = useRef<IntersectionObserver | null>(null)
+
+    useEffect(() => {
+        // Scroll animation observer
+        observerRef.current = new IntersectionObserver(
+            (entries) => {
+                entries.forEach((entry) => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('visible')
+                    }
+                })
+            },
+            { threshold: 0.1, rootMargin: '0px 0px -50px 0px' }
+        )
+
+        const elements = document.querySelectorAll('.animate-on-scroll')
+        elements.forEach((el) => observerRef.current?.observe(el))
+
+        // Navbar scroll effect
+        const handleScroll = () => {
+            const navbar = document.querySelector('.landing-navbar')
+            if (window.scrollY > 50) {
+                navbar?.classList.add('scrolled')
+            } else {
+                navbar?.classList.remove('scrolled')
+            }
+        }
+        window.addEventListener('scroll', handleScroll)
+
+        return () => {
+            observerRef.current?.disconnect()
+            window.removeEventListener('scroll', handleScroll)
+        }
+    }, [])
+
     const stats = [
         { value: '10.000+', label: 'Alunos Impactados', icon: 'bi-people-fill' },
         { value: '100+', label: 'Escolas Parceiras', icon: 'bi-building' },
@@ -37,6 +73,7 @@ export function LandingPage() {
             ],
             icon: 'bi-clipboard-data',
             color: '#1e3a5f',
+            image: '/solution-assessment.png',
         },
         {
             title: 'SAG',
@@ -50,6 +87,7 @@ export function LandingPage() {
             ],
             icon: 'bi-graph-up-arrow',
             color: '#00a8e8',
+            image: '/about-educators.png',
         },
         {
             title: 'Pensamento Computacional',
@@ -63,6 +101,7 @@ export function LandingPage() {
             ],
             icon: 'bi-cpu',
             color: '#1e3a5f',
+            image: '/solution-computational.png',
         },
     ]
 
@@ -105,6 +144,8 @@ export function LandingPage() {
         },
     ]
 
+
+
     return (
         <div className="landing-page">
             {/* Navbar */}
@@ -137,9 +178,11 @@ export function LandingPage() {
                                 <a className="nav-link" href="#diferenciais">Diferenciais</a>
                             </li>
                             <li className="nav-item">
+                                <a className="nav-link" href="#parceiros">Parceiros</a>
+                            </li>
+                            <li className="nav-item">
                                 <a className="nav-link" href="#depoimentos">Depoimentos</a>
                             </li>
-
                         </ul>
                         <Link to="/login" className="btn btn-primary-gradient">
                             <i className="bi bi-box-arrow-in-right me-2"></i>
@@ -149,12 +192,12 @@ export function LandingPage() {
                 </div>
             </nav>
 
-            {/* Hero Section */}
-            <section className="hero-section">
+            {/* Hero Section - Enhanced with Real Image */}
+            <section className="hero-section hero-section-enhanced">
                 <div className="container">
                     <div className="row align-items-center min-vh-100">
                         <div className="col-lg-6">
-                            <div className="hero-badge-inline mb-3">
+                            <div className="hero-badge-animated mb-3">
                                 <i className="bi bi-stars me-2"></i>
                                 +98% de satisfação dos gestores
                             </div>
@@ -195,48 +238,13 @@ export function LandingPage() {
                             </div>
                         </div>
                         <div className="col-lg-6 d-none d-lg-block">
-                            <div className="hero-illustration">
-                                <div className="floating-card card-1">
-                                    <i className="bi bi-mortarboard-fill"></i>
-                                </div>
-                                <div className="floating-card card-2">
-                                    <i className="bi bi-graph-up"></i>
-                                </div>
-                                <div className="floating-card card-3">
-                                    <i className="bi bi-check-circle-fill"></i>
-                                </div>
-                                <div className="floating-card card-4">
-                                    <i className="bi bi-book-fill"></i>
-                                </div>
-                                <div className="floating-card card-5">
-                                    <i className="bi bi-lightbulb-fill"></i>
-                                </div>
-                                <div className="hero-main-image">
-                                    <div className="dashboard-preview">
-                                        <div className="preview-header">
-                                            <span className="dot red"></span>
-                                            <span className="dot yellow"></span>
-                                            <span className="dot green"></span>
-                                            <span className="preview-title">Dashboard MAXIMIZA</span>
-                                        </div>
-                                        <div className="preview-content">
-                                            <div className="preview-sidebar">
-                                                <div className="sidebar-item active"></div>
-                                                <div className="sidebar-item"></div>
-                                                <div className="sidebar-item"></div>
-                                                <div className="sidebar-item"></div>
-                                            </div>
-                                            <div className="preview-main">
-                                                <div className="preview-chart"></div>
-                                                <div className="preview-cards">
-                                                    <div className="mini-card"></div>
-                                                    <div className="mini-card"></div>
-                                                    <div className="mini-card"></div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
+                            <div className="hero-image-container">
+                                <img
+                                    src="/hero-students.png"
+                                    alt="Estudantes usando tecnologia educacional MAXIMIZA"
+                                    loading="eager"
+                                />
+                                <div className="hero-image-overlay"></div>
                             </div>
                         </div>
                     </div>
@@ -254,7 +262,7 @@ export function LandingPage() {
                     <div className="row g-4">
                         {stats.map((stat, index) => (
                             <div key={index} className="col-6 col-md-3">
-                                <div className="stat-card text-center">
+                                <div className={`stat-card text-center animate-on-scroll fade-up delay-${(index + 1) * 100}`}>
                                     <div className="stat-icon">
                                         <i className={`bi ${stat.icon}`}></i>
                                     </div>
@@ -270,7 +278,7 @@ export function LandingPage() {
             {/* Features Grid Section */}
             <section className="features-section py-5">
                 <div className="container">
-                    <div className="text-center mb-5">
+                    <div className="text-center mb-5 animate-on-scroll fade-up">
                         <span className="section-badge">Por que escolher a MAXIMIZA?</span>
                         <h2 className="section-title">
                             Recursos que fazem a <span className="text-gradient">Diferença</span>
@@ -279,7 +287,7 @@ export function LandingPage() {
                     <div className="row g-4">
                         {features.map((feature, index) => (
                             <div key={index} className="col-md-6 col-lg-4">
-                                <div className="feature-card">
+                                <div className={`feature-card animate-on-scroll fade-up delay-${((index % 3) + 1) * 100}`}>
                                     <div className="feature-icon">
                                         <i className={`bi ${feature.icon}`}></i>
                                     </div>
@@ -292,35 +300,34 @@ export function LandingPage() {
                 </div>
             </section>
 
-            {/* About Section */}
+            {/* About Section - Enhanced with Real Image */}
             <section id="sobre" className="about-section py-5">
                 <div className="container">
                     <div className="row align-items-center">
                         <div className="col-lg-6 mb-4 mb-lg-0">
-                            <div className="about-visual">
-                                <div className="visual-circle circle-1"></div>
-                                <div className="visual-circle circle-2"></div>
-                                <div className="visual-circle circle-3"></div>
-                                <div className="about-content-card">
-                                    <div className="content-icon">
-                                        <i className="bi bi-award-fill"></i>
+                            <div className="about-image-wrapper animate-on-scroll fade-left">
+                                <img
+                                    src="/about-educators.png"
+                                    alt="Gestores educacionais analisando dados MAXIMIZA"
+                                    loading="lazy"
+                                />
+                                <div className="about-floating-stats">
+                                    <div className="floating-stat">
+                                        <span className="value">+15%</span>
+                                        <span className="label">IDEB</span>
                                     </div>
-                                    <h3>Excelência Comprovada</h3>
-                                    <p>Resultados reais em avaliações oficiais</p>
-                                    <div className="achievement-badges">
-                                        <div className="achievement">
-                                            <span className="value">+15%</span>
-                                            <span className="label">IDEB</span>
-                                        </div>
-                                        <div className="achievement">
-                                            <span className="value">+20%</span>
-                                            <span className="label">Proficiência</span>
-                                        </div>
+                                    <div className="floating-stat">
+                                        <span className="value">+20%</span>
+                                        <span className="label">Proficiência</span>
+                                    </div>
+                                    <div className="floating-stat">
+                                        <span className="value">98%</span>
+                                        <span className="label">Satisfação</span>
                                     </div>
                                 </div>
                             </div>
                         </div>
-                        <div className="col-lg-6">
+                        <div className="col-lg-6 animate-on-scroll fade-right">
                             <span className="section-badge">Sobre a MAXIMIZA</span>
                             <h2 className="section-title">
                                 Democratizando a <span className="text-gradient">Educação de Qualidade</span>
@@ -357,7 +364,7 @@ export function LandingPage() {
             {/* How It Works Section */}
             <section className="how-it-works-section py-5">
                 <div className="container">
-                    <div className="text-center mb-5">
+                    <div className="text-center mb-5 animate-on-scroll fade-up">
                         <span className="section-badge">Como Funciona</span>
                         <h2 className="section-title">
                             Implementação <span className="text-gradient">Simplificada</span>
@@ -366,7 +373,7 @@ export function LandingPage() {
                     <div className="row g-4">
                         {howItWorks.map((item, index) => (
                             <div key={index} className="col-md-6 col-lg-3">
-                                <div className="how-card">
+                                <div className={`how-card animate-on-scroll scale-in delay-${(index + 1) * 100}`}>
                                     <div className="step-number">{item.step}</div>
                                     <div className="how-icon">
                                         <i className={`bi ${item.icon}`}></i>
@@ -385,10 +392,10 @@ export function LandingPage() {
                 </div>
             </section>
 
-            {/* Solutions Section */}
+            {/* Solutions Section - Enhanced with Images */}
             <section id="solucoes" className="solutions-section py-5">
                 <div className="container">
-                    <div className="text-center mb-5">
+                    <div className="text-center mb-5 animate-on-scroll fade-up">
                         <span className="section-badge">Nossas Soluções</span>
                         <h2 className="section-title">
                             Soluções <span className="text-gradient">Educacionais Completas</span>
@@ -400,24 +407,34 @@ export function LandingPage() {
                     <div className="row g-4">
                         {solutions.map((solution, index) => (
                             <div key={index} className="col-lg-4">
-                                <div className="solution-card">
-                                    <div className="solution-icon" style={{ background: solution.color }}>
-                                        <i className={`bi ${solution.icon}`}></i>
+                                <div className={`solution-card-enhanced animate-on-scroll fade-up delay-${(index + 1) * 100}`}>
+                                    <div className="solution-image-wrapper">
+                                        <img
+                                            src={solution.image}
+                                            alt={`${solution.title} - ${solution.subtitle}`}
+                                            loading="lazy"
+                                        />
+                                        <div className="solution-image-overlay"></div>
                                     </div>
-                                    <h3 className="solution-title">{solution.title}</h3>
-                                    <p className="solution-subtitle">{solution.subtitle}</p>
-                                    <p className="solution-description">{solution.description}</p>
-                                    <ul className="solution-features">
-                                        {solution.features.map((feature, fIndex) => (
-                                            <li key={fIndex}>
-                                                <i className="bi bi-check2-circle text-primary"></i>
-                                                {feature}
-                                            </li>
-                                        ))}
-                                    </ul>
-                                    <button className="btn btn-outline-primary w-100">
-                                        Saiba Mais
-                                    </button>
+                                    <div className="solution-content">
+                                        <div className="solution-icon" style={{ background: solution.color }}>
+                                            <i className={`bi ${solution.icon}`}></i>
+                                        </div>
+                                        <h3 className="solution-title">{solution.title}</h3>
+                                        <p className="solution-subtitle">{solution.subtitle}</p>
+                                        <p className="solution-description">{solution.description}</p>
+                                        <ul className="solution-features">
+                                            {solution.features.map((feature, fIndex) => (
+                                                <li key={fIndex}>
+                                                    <i className="bi bi-check2-circle text-primary"></i>
+                                                    {feature}
+                                                </li>
+                                            ))}
+                                        </ul>
+                                        <button className="btn btn-outline-primary w-100">
+                                            Saiba Mais
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         ))}
@@ -428,7 +445,7 @@ export function LandingPage() {
             {/* Differentials Section */}
             <section id="diferenciais" className="differentials-section py-5">
                 <div className="container">
-                    <div className="text-center mb-5">
+                    <div className="text-center mb-5 animate-on-scroll fade-up">
                         <span className="section-badge">Diferenciais Pedagógicos</span>
                         <h2 className="section-title">
                             Alinhamento <span className="text-gradient">BNCC e SAEB</span>
@@ -436,7 +453,7 @@ export function LandingPage() {
                     </div>
                     <div className="row g-4">
                         <div className="col-lg-6">
-                            <div className="differential-card">
+                            <div className="differential-card animate-on-scroll fade-left">
                                 <div className="differential-header">
                                     <div className="differential-icon bncc">
                                         <i className="bi bi-book-half"></i>
@@ -455,7 +472,7 @@ export function LandingPage() {
                             </div>
                         </div>
                         <div className="col-lg-6">
-                            <div className="differential-card">
+                            <div className="differential-card animate-on-scroll fade-right">
                                 <div className="differential-header">
                                     <div className="differential-icon saeb">
                                         <i className="bi bi-bar-chart-fill"></i>
@@ -477,10 +494,42 @@ export function LandingPage() {
                 </div>
             </section>
 
+            {/* NEW: Success Cases / Partners Section */}
+            <section id="parceiros" className="success-cases-section py-5">
+                <div className="container position-relative">
+                    <div className="text-center mb-5 animate-on-scroll fade-up">
+                        <span className="section-badge">Parceiros de Sucesso</span>
+                        <h2 className="section-title">
+                            Transformando a Educação em <span className="text-gradient">Todo o Brasil</span>
+                        </h2>
+                    </div>
+                    <div className="row g-4 mb-4">
+                        <div className="col-6 col-md-4">
+                            <div className="success-stat-card animate-on-scroll scale-in delay-200">
+                                <div className="stat-value">100+</div>
+                                <div className="stat-label">Escolas Atendidas</div>
+                            </div>
+                        </div>
+                        <div className="col-6 col-md-4">
+                            <div className="success-stat-card animate-on-scroll scale-in delay-200">
+                                <div className="stat-value">10K+</div>
+                                <div className="stat-label">Alunos Beneficiados</div>
+                            </div>
+                        </div>
+                        <div className="col-6 col-md-4">
+                            <div className="success-stat-card animate-on-scroll scale-in delay-300">
+                                <div className="stat-value">500+</div>
+                                <div className="stat-label">Professores Capacitados</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
             {/* Testimonials Section */}
             <section id="depoimentos" className="testimonials-section py-5">
                 <div className="container">
-                    <div className="text-center mb-5">
+                    <div className="text-center mb-5 animate-on-scroll fade-up">
                         <span className="section-badge">Depoimentos</span>
                         <h2 className="section-title">
                             O que dizem nossos <span className="text-gradient">Parceiros</span>
@@ -489,7 +538,10 @@ export function LandingPage() {
                     <div className="row g-4">
                         {testimonials.map((testimonial, index) => (
                             <div key={index} className="col-lg-4">
-                                <div className="testimonial-card">
+                                <div className={`testimonial-card-enhanced animate-on-scroll fade-up delay-${(index + 1) * 100}`}>
+                                    <div className="testimonial-avatar-large">
+                                        {testimonial.author.split(' ').map(n => n[0]).join('')}
+                                    </div>
                                     <div className="testimonial-rating">
                                         {[...Array(testimonial.rating)].map((_, i) => (
                                             <i key={i} className="bi bi-star-fill text-warning"></i>
@@ -500,9 +552,6 @@ export function LandingPage() {
                                     </div>
                                     <p className="testimonial-text">{testimonial.quote}</p>
                                     <div className="testimonial-author">
-                                        <div className="author-avatar">
-                                            {testimonial.author.split(' ').map(n => n[0]).join('')}
-                                        </div>
                                         <div className="author-info">
                                             <h5>{testimonial.author}</h5>
                                             <p>{testimonial.role}</p>
@@ -519,7 +568,7 @@ export function LandingPage() {
             {/* CTA Section */}
             <section id="contato" className="cta-section py-5">
                 <div className="container">
-                    <div className="cta-card">
+                    <div className="cta-card animate-on-scroll scale-in">
                         <div className="cta-decoration">
                             <div className="deco-circle deco-1"></div>
                             <div className="deco-circle deco-2"></div>
