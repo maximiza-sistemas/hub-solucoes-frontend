@@ -113,16 +113,13 @@ export function LoginPage() {
                                         </div>
                                     )}
 
-                                    <div className="d-flex justify-content-between align-items-center mb-4">
+                                    <div className="mb-4">
                                         <div className="form-check">
                                             <input type="checkbox" className="form-check-input" id="rememberMe" />
                                             <label className="form-check-label small" htmlFor="rememberMe">
                                                 Lembrar-me
                                             </label>
                                         </div>
-                                        <a href="#" className="small text-decoration-none" style={{ color: '#00a8e8' }}>
-                                            Esqueceu a senha?
-                                        </a>
                                     </div>
 
                                     <button
