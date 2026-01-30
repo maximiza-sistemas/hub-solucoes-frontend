@@ -140,25 +140,13 @@ export function LoginPage() {
                                         )}
                                     </button>
                                 </form>
-
-                                {/* Demo credentials */}
-                                <div className="mt-4 p-3 rounded-3" style={{ background: 'linear-gradient(135deg, #f0f7ff 0%, #e8f4fc 100%)' }}>
-                                    <p className="small fw-medium mb-2" style={{ color: '#1e3a5f' }}>
-                                        <i className="bi bi-info-circle me-1"></i>
-                                        Credenciais de demonstração:
-                                    </p>
-                                    <div className="small" style={{ color: '#64748b' }}>
-                                        <p className="mb-1"><strong>Admin:</strong> admin@maximiza.com / admin123</p>
-                                        <p className="mb-0"><strong>Gestor:</strong> gestor@saoluis.ma.gov.br / admin123</p>
-                                    </div>
-                                </div>
                             </div>
                         </div>
 
                         {/* Footer */}
                         <div className="text-center mt-4">
                             <p className="small text-white-50 mb-0">
-                                © 2024 MAXIMIZA Soluções Educacionais
+                                © 2026 MAXIMIZA Soluções Educacionais
                             </p>
                         </div>
                     </div>
