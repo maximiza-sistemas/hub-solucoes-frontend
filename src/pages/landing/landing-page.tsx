@@ -1,11 +1,58 @@
 import { Link } from 'react-router-dom'
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState, useCallback } from 'react'
+
+// Counter animation hook
+function useCounterAnimation(endValue: string, duration: number = 2000) {
+    const [displayValue, setDisplayValue] = useState('0')
+    const [hasAnimated, setHasAnimated] = useState(false)
+
+    const animate = useCallback(() => {
+        if (hasAnimated) return
+        setHasAnimated(true)
+
+        // Parse the end value (handles formats like "10.000+", "98%", "100+")
+        const numericPart = endValue.replace(/[^0-9]/g, '')
+        const suffix = endValue.replace(/[0-9.]/g, '')
+        const targetNum = parseInt(numericPart, 10)
+
+        const startTime = performance.now()
+
+        const updateCounter = (currentTime: number) => {
+            const elapsed = currentTime - startTime
+            const progress = Math.min(elapsed / duration, 1)
+
+            // Ease-out cubic
+            const easeOut = 1 - Math.pow(1 - progress, 3)
+            const currentValue = Math.floor(targetNum * easeOut)
+
+            // Format with dots for thousands (Brazilian format)
+            const formatted = currentValue.toLocaleString('pt-BR')
+            setDisplayValue(formatted + suffix)
+
+            if (progress < 1) {
+                requestAnimationFrame(updateCounter)
+            }
+        }
+
+        requestAnimationFrame(updateCounter)
+    }, [endValue, duration, hasAnimated])
+
+    return { displayValue, animate, hasAnimated }
+}
 
 export function LandingPage() {
     const observerRef = useRef<IntersectionObserver | null>(null)
+    const statsRef = useRef<HTMLDivElement | null>(null)
+
+    // Counter animations for stats
+    const counter1 = useCounterAnimation('10.000+')
+    const counter2 = useCounterAnimation('100+')
+    const counter3 = useCounterAnimation('98%')
+    const counter4 = useCounterAnimation('15+')
+    const counters = [counter1, counter2, counter3, counter4]
 
     useEffect(() => {
-        // Scroll animation observer
+        // Scroll animation observer for general elements
         observerRef.current = new IntersectionObserver(
             (entries) => {
                 entries.forEach((entry) => {
@@ -20,6 +67,22 @@ export function LandingPage() {
         const elements = document.querySelectorAll('.animate-on-scroll')
         elements.forEach((el) => observerRef.current?.observe(el))
 
+        // Stats counter observer
+        const statsObserver = new IntersectionObserver(
+            (entries) => {
+                entries.forEach((entry) => {
+                    if (entry.isIntersecting) {
+                        counters.forEach(c => c.animate())
+                    }
+                })
+            },
+            { threshold: 0.3 }
+        )
+
+        if (statsRef.current) {
+            statsObserver.observe(statsRef.current)
+        }
+
         // Navbar scroll effect
         const handleScroll = () => {
             const navbar = document.querySelector('.landing-navbar')
@@ -33,6 +96,7 @@ export function LandingPage() {
 
         return () => {
             observerRef.current?.disconnect()
+            statsObserver.disconnect()
             window.removeEventListener('scroll', handleScroll)
         }
     }, [])
@@ -194,7 +258,13 @@ export function LandingPage() {
 
             {/* Hero Section - Enhanced with Real Image */}
             <section className="hero-section hero-section-enhanced">
-                <div className="container">
+                {/* Floating Shapes Background */}
+                <div className="floating-shapes">
+                    <div className="floating-shape shape-1"></div>
+                    <div className="floating-shape shape-2"></div>
+                    <div className="floating-shape shape-3"></div>
+                </div>
+                <div className="container position-relative" style={{ zIndex: 1 }}>
                     <div className="row align-items-center min-vh-100">
                         <div className="col-lg-6">
                             <div className="hero-badge-animated mb-3">
@@ -203,9 +273,9 @@ export function LandingPage() {
                             </div>
                             <h1 className="hero-title">
                                 Transforme a <br />
-                                <span className="text-gradient">Educação</span> com <br />
+                                <span className="text-gradient-shimmer">Educação</span> com <br />
                                 Tecnologia e <br />
-                                <span className="text-gradient">Inovação</span>
+                                <span className="text-gradient-shimmer">Inovação</span>
                             </h1>
                             <p className="hero-subtitle">
                                 Soluções educacionais completas, alinhadas à BNCC e SAEB,
@@ -257,16 +327,18 @@ export function LandingPage() {
             </section>
 
             {/* Stats Section */}
-            <section className="stats-section py-5">
+            <section className="stats-section py-5" ref={statsRef}>
                 <div className="container">
                     <div className="row g-4">
                         {stats.map((stat, index) => (
                             <div key={index} className="col-6 col-md-3">
-                                <div className={`stat-card text-center animate-on-scroll fade-up delay-${(index + 1) * 100}`}>
+                                <div className={`stat-card text-center animate-on-scroll fade-up delay-${(index + 1) * 100} hover-glow`}>
                                     <div className="stat-icon">
                                         <i className={`bi ${stat.icon}`}></i>
                                     </div>
-                                    <h3 className="stat-value">{stat.value}</h3>
+                                    <h3 className="stat-value counter-animate">
+                                        {counters[index].displayValue}
+                                    </h3>
                                     <p className="stat-label">{stat.label}</p>
                                 </div>
                             </div>
