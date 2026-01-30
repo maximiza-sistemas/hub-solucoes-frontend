@@ -729,7 +729,7 @@ export function LandingPage() {
                     <div className="footer-bottom">
                         <div className="row align-items-center">
                             <div className="col-md-6">
-                                <p>&copy; 2024 MAXIMIZA Soluções Educacionais. Todos os direitos reservados.</p>
+                                <p>&copy; 2026 MAXIMIZA Soluções Educacionais. Todos os direitos reservados.</p>
                             </div>
                             <div className="col-md-6 text-md-end">
                                 <a href="#" className="footer-link me-3">Política de Privacidade</a>
