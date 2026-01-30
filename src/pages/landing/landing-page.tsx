@@ -656,11 +656,11 @@ export function LandingPage() {
                                 </div>
                             </div>
                             <div className="col-lg-4 text-lg-end mt-4 mt-lg-0">
-                                <a href="mailto:contato@maximizaedu.com" className="btn btn-light btn-lg me-2 mb-2">
+                                <a href="mailto:centralderelacionamento@maximizasoluc.com" className="btn btn-light btn-lg me-2 mb-2">
                                     <i className="bi bi-envelope me-2"></i>
                                     Enviar E-mail
                                 </a>
-                                <a href="https://wa.me/5598999999999" className="btn btn-success btn-lg mb-2">
+                                <a href="https://wa.me/5598989292525" className="btn btn-success btn-lg mb-2">
                                     <i className="bi bi-whatsapp me-2"></i>
                                     WhatsApp
                                 </a>
@@ -713,15 +713,15 @@ export function LandingPage() {
                                 </li>
                                 <li>
                                     <i className="bi bi-envelope"></i>
-                                    contato@maximizaedu.com
+                                    centralderelacionamento@maximizasoluc.com
                                 </li>
                                 <li>
                                     <i className="bi bi-telephone"></i>
-                                    (98) 99999-9999
+                                    (98) 98929-2525
                                 </li>
                                 <li>
                                     <i className="bi bi-whatsapp"></i>
-                                    (98) 99999-9999
+                                    (98) 98929-2525
                                 </li>
                             </ul>
                         </div>
