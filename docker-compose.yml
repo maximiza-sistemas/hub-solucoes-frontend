@@ -1,0 +1,13 @@
+services:
+  hub-front-end:
+    build: .
+    context: Dockerfile
+    ports:
+      - "${PORT}:80"
+    restart: unless-stopped
+    env_file: ./.env
+    
+networks:
+  default:
+    external: true
+    name: easypanel
