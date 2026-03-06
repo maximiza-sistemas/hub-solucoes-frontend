@@ -27,6 +27,16 @@ export function formatDate(date: Date | string): string {
     return d.toLocaleDateString('pt-BR')
 }
 
+export function formatDateBR(dateStr: string): string {
+    // Convert yyyy-MM-dd to dd/MM/yyyy
+    if (!dateStr) return ''
+    const parts = dateStr.split('-')
+    if (parts.length === 3) {
+        return `${parts[2]}/${parts[1]}/${parts[0]}`
+    }
+    return dateStr
+}
+
 export function formatDateTime(date: Date | string): string {
     const d = typeof date === 'string' ? new Date(date) : date
     return d.toLocaleString('pt-BR')

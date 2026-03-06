@@ -1,14 +1,31 @@
-// API Service for communicating with the backend
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api'
+import type {
+    AuthResponse,
+    Municipio,
+    Solucao,
+    Usuario,
+    Aluno,
+    Escola,
+    Regiao,
+    Grupo,
+    Turma,
+    Role,
+    PageResponse,
+} from '@/types'
+
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080'
 
 interface RequestOptions {
-    method?: 'GET' | 'POST' | 'PUT' | 'DELETE'
+    method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'
     body?: unknown
     token?: string | null
+    params?: Record<string, string | number | undefined>
 }
 
+let isRefreshing = false
+let refreshPromise: Promise<{ accessToken: string; refreshToken: string }> | null = null
+
 async function request<T>(endpoint: string, options: RequestOptions = {}): Promise<T> {
-    const { method = 'GET', body, token } = options
+    const { method = 'GET', body, token, params } = options
 
     const headers: HeadersInit = {
         'Content-Type': 'application/json',
@@ -27,11 +44,78 @@ async function request<T>(endpoint: string, options: RequestOptions = {}): Promi
         config.body = JSON.stringify(body)
     }
 
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, config)
+    let url = `${API_BASE_URL}${endpoint}`
+    if (params) {
+        const searchParams = new URLSearchParams()
+        for (const [key, value] of Object.entries(params)) {
+            if (value !== undefined && value !== null && value !== '') {
+                searchParams.set(key, String(value))
+            }
+        }
+        const qs = searchParams.toString()
+        if (qs) url += `?${qs}`
+    }
+
+    const response = await fetch(url, config)
+
+    if ((response.status === 401 || response.status === 403) && token) {
+        // Try refreshing the token
+        const { useAuthStore } = await import('@/stores/auth-store')
+        const refreshToken = useAuthStore.getState().refreshToken
+
+        if (refreshToken && !isRefreshing) {
+            isRefreshing = true
+            refreshPromise = authApi.refresh(refreshToken)
+
+            try {
+                const tokens = await refreshPromise
+                useAuthStore.getState().updateTokens(tokens.accessToken, tokens.refreshToken)
+                isRefreshing = false
+                refreshPromise = null
+
+                // Retry original request with new token
+                headers['Authorization'] = `Bearer ${tokens.accessToken}`
+                const retryConfig: RequestInit = { method, headers }
+                if (body) retryConfig.body = JSON.stringify(body)
+                const retryResponse = await fetch(url, retryConfig)
+                if (!retryResponse.ok) {
+                    const error = await retryResponse.json().catch(() => ({ error: 'Erro desconhecido' }))
+                    throw new Error(error.error || error.message || 'Erro na requisição')
+                }
+                return retryResponse.json()
+            } catch {
+                isRefreshing = false
+                refreshPromise = null
+                useAuthStore.getState().logout()
+                throw new Error('Sessão expirada. Faça login novamente.')
+            }
+        } else if (isRefreshing && refreshPromise) {
+            // Wait for the refresh to complete, then retry
+            try {
+                const tokens = await refreshPromise
+                headers['Authorization'] = `Bearer ${tokens.accessToken}`
+                const retryConfig: RequestInit = { method, headers }
+                if (body) retryConfig.body = JSON.stringify(body)
+                const retryResponse = await fetch(url, retryConfig)
+                if (!retryResponse.ok) {
+                    const error = await retryResponse.json().catch(() => ({ error: 'Erro desconhecido' }))
+                    throw new Error(error.error || error.message || 'Erro na requisição')
+                }
+                return retryResponse.json()
+            } catch {
+                throw new Error('Sessão expirada. Faça login novamente.')
+            }
+        }
+    }
 
     if (!response.ok) {
         const error = await response.json().catch(() => ({ error: 'Erro desconhecido' }))
         throw new Error(error.error || error.message || 'Erro na requisição')
+    }
+
+    // Handle 204 No Content
+    if (response.status === 204) {
+        return undefined as T
     }
 
     return response.json()
@@ -39,119 +123,206 @@ async function request<T>(endpoint: string, options: RequestOptions = {}): Promi
 
 // Auth API
 export const authApi = {
-    login: (email: string, senha: string) =>
-        request<{ token: string; user: import('@/types').User }>('/auth/login', {
+    login: (email: string, password: string) =>
+        request<AuthResponse>('/auth/login', {
             method: 'POST',
-            body: { email, senha },
+            body: { email, password },
         }),
 
-    me: (token: string) =>
-        request<import('@/types').User>('/auth/me', { token }),
+    register: (data: { nome: string; email: string; password: string; municipioId?: number }) =>
+        request<AuthResponse>('/auth/register', {
+            method: 'POST',
+            body: data,
+        }),
+
+    refresh: (refreshToken: string) =>
+        request<{ accessToken: string; refreshToken: string }>('/auth/refresh', {
+            method: 'POST',
+            body: { refreshToken },
+        }),
 }
 
 // Municipios API
 export const municipiosApi = {
-    list: (token?: string | null) =>
-        request<import('@/types').Municipio[]>('/municipios', { token }),
+    list: (token?: string | null, params?: Record<string, string | number | undefined>) =>
+        request<PageResponse<Municipio>>('/municipios', { token, params: { size: 1000, ...params } }),
 
-    get: (id: string, token?: string | null) =>
-        request<import('@/types').Municipio>(`/municipios/${id}`, { token }),
+    get: (id: number, token?: string | null) =>
+        request<Municipio>(`/municipios/${id}`, { token }),
 
-    create: (data: Partial<import('@/types').Municipio>, token?: string | null) =>
-        request<import('@/types').Municipio>('/municipios', { method: 'POST', body: data, token }),
+    create: (data: Partial<Municipio>, token?: string | null) =>
+        request<Municipio>('/municipios', { method: 'POST', body: data, token }),
 
-    update: (id: string, data: Partial<import('@/types').Municipio>, token?: string | null) =>
-        request<import('@/types').Municipio>(`/municipios/${id}`, { method: 'PUT', body: data, token }),
+    update: (id: number, data: Partial<Municipio>, token?: string | null) =>
+        request<Municipio>(`/municipios/${id}`, { method: 'PUT', body: data, token }),
 
-    delete: (id: string, token?: string | null) =>
-        request<{ message: string }>(`/municipios/${id}`, { method: 'DELETE', token }),
+    delete: (id: number, token?: string | null) =>
+        request<void>(`/municipios/${id}`, { method: 'DELETE', token }),
+
+    ativar: (id: number, token?: string | null) =>
+        request<Municipio>(`/municipios/${id}/ativar`, { method: 'PATCH', token }),
+
+    inativar: (id: number, token?: string | null) =>
+        request<Municipio>(`/municipios/${id}/inativar`, { method: 'PATCH', token }),
 }
 
 // Usuarios API
 export const usuariosApi = {
-    list: (municipioId?: string, token?: string | null) =>
-        request<import('@/types').User[]>(`/usuarios${municipioId ? `?municipioId=${municipioId}` : ''}`, { token }),
+    list: (token?: string | null, params?: Record<string, string | number | undefined>) =>
+        request<PageResponse<Usuario>>('/usuarios', { token, params: { size: 1000, ...params } }),
 
-    get: (id: string, token?: string | null) =>
-        request<import('@/types').User>(`/usuarios/${id}`, { token }),
+    get: (id: number, token?: string | null) =>
+        request<Usuario>(`/usuarios/${id}`, { token }),
 
-    create: (data: Partial<import('@/types').User> & { senha?: string }, token?: string | null) =>
-        request<import('@/types').User>('/usuarios', { method: 'POST', body: data, token }),
+    create: (data: Partial<Usuario> & { password?: string; tipoUsuarioId?: number }, token?: string | null) =>
+        request<Usuario>('/usuarios', { method: 'POST', body: data, token }),
 
-    update: (id: string, data: Partial<import('@/types').User>, token?: string | null) =>
-        request<import('@/types').User>(`/usuarios/${id}`, { method: 'PUT', body: data, token }),
+    update: (id: number, data: Partial<Usuario> & { tipoUsuarioId?: number }, token?: string | null) =>
+        request<Usuario>(`/usuarios/${id}`, { method: 'PUT', body: data, token }),
 
-    delete: (id: string, token?: string | null) =>
-        request<{ message: string }>(`/usuarios/${id}`, { method: 'DELETE', token }),
+    delete: (id: number, token?: string | null) =>
+        request<void>(`/usuarios/${id}`, { method: 'DELETE', token }),
+
+    ativar: (id: number, token?: string | null) =>
+        request<void>(`/usuarios/${id}/ativar`, { method: 'GET', token }),
+
+    inativar: (id: number, token?: string | null) =>
+        request<void>(`/usuarios/${id}/inativar`, { method: 'GET', token }),
 }
 
 // Solucoes API
 export const solucoesApi = {
-    list: (municipioId?: string, token?: string | null) =>
-        request<import('@/types').Solucao[]>(`/solucoes${municipioId ? `?municipioId=${municipioId}` : ''}`, { token }),
+    list: (token?: string | null, params?: Record<string, string | number | undefined>) =>
+        request<PageResponse<Solucao>>('/solucoes', { token, params: { size: 1000, ...params } }),
 
-    get: (id: string, token?: string | null) =>
-        request<import('@/types').Solucao>(`/solucoes/${id}`, { token }),
+    get: (id: number, token?: string | null) =>
+        request<Solucao>(`/solucoes/${id}`, { token }),
 
-    create: (data: Partial<import('@/types').Solucao>, token?: string | null) =>
-        request<import('@/types').Solucao>('/solucoes', { method: 'POST', body: data, token }),
+    create: (data: Partial<Solucao>, token?: string | null) =>
+        request<Solucao>('/solucoes', { method: 'POST', body: data, token }),
 
-    update: (id: string, data: Partial<import('@/types').Solucao>, token?: string | null) =>
-        request<import('@/types').Solucao>(`/solucoes/${id}`, { method: 'PUT', body: data, token }),
+    update: (id: number, data: Partial<Solucao>, token?: string | null) =>
+        request<Solucao>(`/solucoes/${id}`, { method: 'PUT', body: data, token }),
 
-    delete: (id: string, token?: string | null) =>
-        request<{ message: string }>(`/solucoes/${id}`, { method: 'DELETE', token }),
+    delete: (id: number, token?: string | null) =>
+        request<void>(`/solucoes/${id}`, { method: 'DELETE', token }),
+
+    ativar: (id: number, token?: string | null) =>
+        request<Solucao>(`/solucoes/${id}/ativar`, { method: 'GET', token }),
+
+    inativar: (id: number, token?: string | null) =>
+        request<Solucao>(`/solucoes/${id}/inativar`, { method: 'GET', token }),
 }
 
 // Escolas API
 export const escolasApi = {
-    list: (municipioId?: string, token?: string | null) =>
-        request<import('@/types').Escola[]>(`/escolas${municipioId ? `?municipioId=${municipioId}` : ''}`, { token }),
+    list: (token?: string | null, params?: Record<string, string | number | undefined>) =>
+        request<PageResponse<Escola>>('/escolas', { token, params: { size: 1000, ...params } }),
 
-    get: (id: string, token?: string | null) =>
-        request<import('@/types').Escola>(`/escolas/${id}`, { token }),
+    get: (id: number, token?: string | null) =>
+        request<Escola>(`/escolas/${id}`, { token }),
 
-    create: (data: Partial<import('@/types').Escola>, token?: string | null) =>
-        request<import('@/types').Escola>('/escolas', { method: 'POST', body: data, token }),
+    create: (data: Partial<Escola>, token?: string | null) =>
+        request<Escola>('/escolas', { method: 'POST', body: data, token }),
 
-    update: (id: string, data: Partial<import('@/types').Escola>, token?: string | null) =>
-        request<import('@/types').Escola>(`/escolas/${id}`, { method: 'PUT', body: data, token }),
+    update: (id: number, data: Partial<Escola>, token?: string | null) =>
+        request<Escola>(`/escolas/${id}`, { method: 'PUT', body: data, token }),
 
-    delete: (id: string, token?: string | null) =>
-        request<{ message: string }>(`/escolas/${id}`, { method: 'DELETE', token }),
+    delete: (id: number, token?: string | null) =>
+        request<void>(`/escolas/${id}`, { method: 'DELETE', token }),
 }
 
 // Alunos API
 export const alunosApi = {
-    list: (municipioId?: string, token?: string | null) =>
-        request<import('@/types').Aluno[]>(`/alunos${municipioId ? `?municipioId=${municipioId}` : ''}`, { token }),
+    list: (token?: string | null, params?: Record<string, string | number | undefined>) =>
+        request<PageResponse<Aluno>>('/alunos', { token, params: { size: 1000, ...params } }),
 
-    get: (id: string, token?: string | null) =>
-        request<import('@/types').Aluno>(`/alunos/${id}`, { token }),
+    get: (id: number, token?: string | null) =>
+        request<Aluno>(`/alunos/${id}`, { token }),
 
-    create: (data: Partial<import('@/types').Aluno>, token?: string | null) =>
-        request<import('@/types').Aluno>('/alunos', { method: 'POST', body: data, token }),
+    create: (data: Partial<Aluno>, token?: string | null) =>
+        request<Aluno>('/alunos', { method: 'POST', body: data, token }),
 
-    update: (id: string, data: Partial<import('@/types').Aluno>, token?: string | null) =>
-        request<import('@/types').Aluno>(`/alunos/${id}`, { method: 'PUT', body: data, token }),
+    update: (id: number, data: Partial<Aluno>, token?: string | null) =>
+        request<Aluno>(`/alunos/${id}`, { method: 'PUT', body: data, token }),
 
-    delete: (id: string, token?: string | null) =>
-        request<{ message: string }>(`/alunos/${id}`, { method: 'DELETE', token }),
+    delete: (id: number, token?: string | null) =>
+        request<void>(`/alunos/${id}`, { method: 'DELETE', token }),
 }
 
-// Dashboard API
-export const dashboardApi = {
-    stats: (municipioId?: string, token?: string | null) =>
-        request<import('@/types').DashboardStats>(`/dashboard/stats${municipioId ? `?municipioId=${municipioId}` : ''}`, { token }),
+// Regioes API
+export const regioesApi = {
+    list: (token?: string | null, params?: Record<string, string | number | undefined>) =>
+        request<PageResponse<Regiao>>('/regioes', { token, params: { size: 1000, ...params } }),
 
-    charts: (municipioId?: string, token?: string | null) =>
-        request<{ tipoEnsino: { name: string; value: number }[]; statusAlunos: { name: string; value: number }[] }>(
-            `/dashboard/charts${municipioId ? `?municipioId=${municipioId}` : ''}`,
-            { token }
-        ),
+    get: (id: number, token?: string | null) =>
+        request<Regiao>(`/regioes/${id}`, { token }),
+
+    create: (data: Partial<Regiao>, token?: string | null) =>
+        request<Regiao>('/regioes', { method: 'POST', body: data, token }),
+
+    update: (id: number, data: Partial<Regiao>, token?: string | null) =>
+        request<Regiao>(`/regioes/${id}`, { method: 'PUT', body: data, token }),
+
+    delete: (id: number, token?: string | null) =>
+        request<void>(`/regioes/${id}`, { method: 'DELETE', token }),
 }
 
-// Health check
-export const healthApi = {
-    check: () => request<{ status: string; database: string; timestamp: string }>('/health'),
+// Grupos API
+export const gruposApi = {
+    list: (token?: string | null, params?: Record<string, string | number | undefined>) =>
+        request<PageResponse<Grupo>>('/grupos', { token, params: { size: 1000, ...params } }),
+
+    get: (id: number, token?: string | null) =>
+        request<Grupo>(`/grupos/${id}`, { token }),
+
+    create: (data: Partial<Grupo>, token?: string | null) =>
+        request<Grupo>('/grupos', { method: 'POST', body: data, token }),
+
+    update: (id: number, data: Partial<Grupo>, token?: string | null) =>
+        request<Grupo>(`/grupos/${id}`, { method: 'PUT', body: data, token }),
+
+    delete: (id: number, token?: string | null) =>
+        request<void>(`/grupos/${id}`, { method: 'DELETE', token }),
+}
+
+// Turmas API
+export const turmasApi = {
+    list: (token?: string | null, params?: Record<string, string | number | undefined>) =>
+        request<PageResponse<Turma>>('/turmas', { token, params: { size: 1000, ...params } }),
+
+    get: (id: number, token?: string | null) =>
+        request<Turma>(`/turmas/${id}`, { token }),
+
+    create: (data: Partial<Turma>, token?: string | null) =>
+        request<Turma>('/turmas', { method: 'POST', body: data, token }),
+
+    update: (id: number, data: Partial<Turma>, token?: string | null) =>
+        request<Turma>(`/turmas/${id}`, { method: 'PUT', body: data, token }),
+
+    delete: (id: number, token?: string | null) =>
+        request<void>(`/turmas/${id}`, { method: 'DELETE', token }),
+}
+
+// Roles API
+export const rolesApi = {
+    list: (token?: string | null, params?: Record<string, string | number | undefined>) =>
+        request<PageResponse<Role>>('/roles', { token, params: { size: 1000, ...params } }),
+    get: (id: number, token?: string | null) =>
+        request<Role>(`/roles/${id}`, { token }),
+    create: (data: Partial<Role>, token?: string | null) =>
+        request<Role>('/roles', { method: 'POST', body: data, token }),
+    update: (id: number, data: Partial<Role>, token?: string | null) =>
+        request<Role>(`/roles/${id}`, { method: 'PUT', body: data, token }),
+    delete: (id: number, token?: string | null) =>
+        request<void>(`/roles/${id}`, { method: 'DELETE', token }),
+}
+
+// Enums API
+export const enumsApi = {
+    turnos: (token?: string | null, params?: Record<string, string | number | undefined>) =>
+        request<PageResponse<string>>('/enums/turnos', { token, params: { size: 100, ...params } }),
+
+    series: (token?: string | null, params?: Record<string, string | number | undefined>) =>
+        request<PageResponse<string>>('/enums/series', { token, params: { size: 100, ...params } }),
 }

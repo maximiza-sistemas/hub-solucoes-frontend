@@ -1,27 +1,26 @@
 import { useEffect } from 'react'
-import { useDataStore } from '@/stores'
+import { useDataStore, useAuthStore } from '@/stores'
 import { useNavigate } from 'react-router-dom'
 
 export function DashboardPage() {
     const {
         municipios,
         solucoes,
-        usuarios,
-        alunos,
         fetchMunicipios,
         fetchSolucoes,
-        fetchUsuarios,
-        fetchAlunos
     } = useDataStore()
+    const { user } = useAuthStore()
+    const isSuperAdmin = user?.role === 'SUPERADMIN'
     const navigate = useNavigate()
 
     // Fetch data on mount
     useEffect(() => {
         fetchMunicipios()
         fetchSolucoes()
-        fetchUsuarios()
-        fetchAlunos()
-    }, [fetchMunicipios, fetchSolucoes, fetchUsuarios, fetchAlunos])
+    }, [fetchMunicipios, fetchSolucoes])
+
+    const totalAlunos = municipios.reduce((acc, m) => acc + (m.totalAlunos || 0), 0)
+    const totalUsuarios = municipios.reduce((acc, m) => acc + (m.totalUsuarios || 0), 0)
 
     const stats = [
         {
@@ -40,14 +39,14 @@ export function DashboardPage() {
         },
         {
             label: 'Usuários',
-            value: usuarios.length,
+            value: totalUsuarios,
             icon: 'bi-people',
             color: 'info',
             path: '/admin/usuarios'
         },
         {
             label: 'Alunos',
-            value: alunos.length,
+            value: totalAlunos,
             icon: 'bi-mortarboard',
             color: 'warning',
             path: '#'
@@ -55,6 +54,11 @@ export function DashboardPage() {
     ]
 
     const recentMunicipios = municipios.slice(0, 4)
+    const meuMunicipio = user?.municipioId
+        ? municipios.find(m => m.id === user.municipioId)
+        : user?.municipio
+            ? municipios.find(m => m.nome === user.municipio)
+            : null
 
     return (
         <div className="animate-fadeIn">
@@ -92,90 +96,155 @@ export function DashboardPage() {
             </div>
 
             <div className="row g-4">
-                {/* Recent Municipalities - CARDS */}
+                {/* Municipalities Section */}
                 <div className="col-12 col-lg-8">
                     <div className="card border-0 shadow-sm">
                         <div className="card-header bg-white border-bottom d-flex justify-content-between align-items-center py-3">
                             <h5 className="mb-0 fw-semibold">
                                 <i className="bi bi-building me-2 text-primary"></i>
-                                Últimos Municípios
+                                {isSuperAdmin ? 'Últimos Municípios' : 'Meu Município'}
                             </h5>
-                            <button
-                                className="btn btn-sm btn-outline-primary"
-                                onClick={() => navigate('/admin/municipios')}
-                            >
-                                Ver todos
-                            </button>
+                            {isSuperAdmin && (
+                                <button
+                                    className="btn btn-sm btn-outline-primary"
+                                    onClick={() => navigate('/admin/municipios')}
+                                >
+                                    Ver todos
+                                </button>
+                            )}
                         </div>
                         <div className="card-body">
                             <div className="row g-3">
-                                {recentMunicipios.map((m) => {
-                                    const userCount = usuarios.filter(u => u.municipioId === m.id).length
-                                    const alunoCount = alunos.filter(a => a.municipioId === m.id).length
-
-                                    return (
-                                        <div key={m.id} className="col-12 col-md-6">
-                                            <div
-                                                className="card border h-100"
-                                                style={{
-                                                    cursor: 'pointer',
-                                                    transition: 'all 0.3s ease',
-                                                    borderRadius: '12px'
-                                                }}
-                                                onClick={() => navigate(`/municipio/${m.id}/dashboard`)}
-                                                onMouseEnter={(e) => {
-                                                    e.currentTarget.style.transform = 'translateY(-4px)'
-                                                    e.currentTarget.style.boxShadow = '0 8px 25px rgba(0,0,0,0.15)'
-                                                    e.currentTarget.style.borderColor = '#0d6efd'
-                                                }}
-                                                onMouseLeave={(e) => {
-                                                    e.currentTarget.style.transform = 'translateY(0)'
-                                                    e.currentTarget.style.boxShadow = 'none'
-                                                    e.currentTarget.style.borderColor = '#dee2e6'
-                                                }}
-                                            >
-                                                <div className="card-body p-3">
-                                                    <div className="d-flex align-items-start justify-content-between mb-3">
-                                                        <div className="d-flex align-items-center gap-3">
-                                                            <div className="d-flex align-items-center justify-content-center rounded-3 bg-primary bg-opacity-10"
-                                                                style={{ width: 48, height: 48 }}>
-                                                                <i className="bi bi-building text-primary" style={{ fontSize: 22 }}></i>
+                                {isSuperAdmin ? (
+                                    <>
+                                        {recentMunicipios.map((m) => (
+                                            <div key={m.id} className="col-12 col-md-6">
+                                                <div
+                                                    className="card border h-100"
+                                                    style={{
+                                                        cursor: 'pointer',
+                                                        transition: 'all 0.3s ease',
+                                                        borderRadius: '12px'
+                                                    }}
+                                                    onClick={() => navigate(`/municipio/${m.id}/dashboard`)}
+                                                    onMouseEnter={(e) => {
+                                                        e.currentTarget.style.transform = 'translateY(-4px)'
+                                                        e.currentTarget.style.boxShadow = '0 8px 25px rgba(0,0,0,0.15)'
+                                                        e.currentTarget.style.borderColor = '#0d6efd'
+                                                    }}
+                                                    onMouseLeave={(e) => {
+                                                        e.currentTarget.style.transform = 'translateY(0)'
+                                                        e.currentTarget.style.boxShadow = 'none'
+                                                        e.currentTarget.style.borderColor = '#dee2e6'
+                                                    }}
+                                                >
+                                                    <div className="card-body p-3">
+                                                        <div className="d-flex align-items-start justify-content-between mb-3">
+                                                            <div className="d-flex align-items-center gap-3">
+                                                                <div className="d-flex align-items-center justify-content-center rounded-3 bg-primary bg-opacity-10"
+                                                                    style={{ width: 48, height: 48 }}>
+                                                                    <i className="bi bi-building text-primary" style={{ fontSize: 22 }}></i>
+                                                                </div>
+                                                                <div>
+                                                                    <h6 className="fw-bold mb-0">{m.nome}</h6>
+                                                                    <small className="text-muted">{m.uf}</small>
+                                                                </div>
                                                             </div>
-                                                            <div>
-                                                                <h6 className="fw-bold mb-0">{m.nome}</h6>
-                                                                <small className="text-muted">{m.estado}</small>
-                                                            </div>
+                                                            <span className={`badge ${m.ativo ? 'bg-success' : 'bg-secondary'}`}>
+                                                                {m.ativo ? 'ativo' : 'inativo'}
+                                                            </span>
                                                         </div>
-                                                        <span className={`badge ${m.status === 'ativo' ? 'bg-success' : 'bg-secondary'}`}>
-                                                            {m.status}
-                                                        </span>
-                                                    </div>
 
-                                                    <div className="row text-center g-0 pt-2 border-top">
-                                                        <div className="col-4">
-                                                            <p className="h6 fw-bold text-success mb-0">{userCount}</p>
-                                                            <small className="text-muted">Usuários</small>
-                                                        </div>
-                                                        <div className="col-4 border-start border-end">
-                                                            <p className="h6 fw-bold text-info mb-0">{alunoCount}</p>
-                                                            <small className="text-muted">Alunos</small>
-                                                        </div>
-                                                        <div className="col-4">
-                                                            <p className="h6 fw-bold text-primary mb-0">
-                                                                <i className="bi bi-arrow-right"></i>
-                                                            </p>
-                                                            <small className="text-muted">Acessar</small>
+                                                        <div className="row text-center g-0 pt-2 border-top">
+                                                            <div className="col-4">
+                                                                <p className="h6 fw-bold text-success mb-0">{m.totalUsuarios}</p>
+                                                                <small className="text-muted">Usuários</small>
+                                                            </div>
+                                                            <div className="col-4 border-start border-end">
+                                                                <p className="h6 fw-bold text-info mb-0">{m.totalAlunos}</p>
+                                                                <small className="text-muted">Alunos</small>
+                                                            </div>
+                                                            <div className="col-4">
+                                                                <p className="h6 fw-bold text-primary mb-0">
+                                                                    <i className="bi bi-arrow-right"></i>
+                                                                </p>
+                                                                <small className="text-muted">Acessar</small>
+                                                            </div>
                                                         </div>
                                                     </div>
                                                 </div>
                                             </div>
+                                        ))}
+                                        {recentMunicipios.length === 0 && (
+                                            <div className="col-12 text-center py-4">
+                                                <i className="bi bi-building text-muted" style={{ fontSize: 48 }}></i>
+                                                <p className="text-muted mt-3 mb-0">Nenhum município cadastrado</p>
+                                            </div>
+                                        )}
+                                    </>
+                                ) : meuMunicipio ? (
+                                    <div className="col-12">
+                                        <div
+                                            className="card border h-100"
+                                            style={{
+                                                cursor: 'pointer',
+                                                transition: 'all 0.3s ease',
+                                                borderRadius: '12px'
+                                            }}
+                                            onClick={() => navigate(`/municipio/${meuMunicipio.id}/dashboard`)}
+                                            onMouseEnter={(e) => {
+                                                e.currentTarget.style.transform = 'translateY(-4px)'
+                                                e.currentTarget.style.boxShadow = '0 8px 25px rgba(0,0,0,0.15)'
+                                                e.currentTarget.style.borderColor = '#0d6efd'
+                                            }}
+                                            onMouseLeave={(e) => {
+                                                e.currentTarget.style.transform = 'translateY(0)'
+                                                e.currentTarget.style.boxShadow = 'none'
+                                                e.currentTarget.style.borderColor = '#dee2e6'
+                                            }}
+                                        >
+                                            <div className="card-body p-4">
+                                                <div className="d-flex align-items-start justify-content-between mb-3">
+                                                    <div className="d-flex align-items-center gap-3">
+                                                        <div className="d-flex align-items-center justify-content-center rounded-3 bg-primary bg-opacity-10"
+                                                            style={{ width: 56, height: 56 }}>
+                                                            <i className="bi bi-building text-primary" style={{ fontSize: 26 }}></i>
+                                                        </div>
+                                                        <div>
+                                                            <h5 className="fw-bold mb-0">{meuMunicipio.nome}</h5>
+                                                            <small className="text-muted">{meuMunicipio.uf}</small>
+                                                        </div>
+                                                    </div>
+                                                    <span className={`badge ${meuMunicipio.ativo ? 'bg-success' : 'bg-secondary'}`}>
+                                                        {meuMunicipio.ativo ? 'ativo' : 'inativo'}
+                                                    </span>
+                                                </div>
+
+                                                <div className="row text-center g-0 pt-3 border-top">
+                                                    <div className="col-3">
+                                                        <p className="h5 fw-bold text-success mb-0">{meuMunicipio.totalUsuarios}</p>
+                                                        <small className="text-muted">Usuários</small>
+                                                    </div>
+                                                    <div className="col-3 border-start">
+                                                        <p className="h5 fw-bold text-info mb-0">{meuMunicipio.totalAlunos}</p>
+                                                        <small className="text-muted">Alunos</small>
+                                                    </div>
+                                                    <div className="col-3 border-start">
+                                                        <p className="h5 fw-bold text-warning mb-0">{meuMunicipio.totalEscolas}</p>
+                                                        <small className="text-muted">Escolas</small>
+                                                    </div>
+                                                    <div className="col-3 border-start">
+                                                        <p className="h5 fw-bold text-primary mb-0">{meuMunicipio.totalSolucoes}</p>
+                                                        <small className="text-muted">Soluções</small>
+                                                    </div>
+                                                </div>
+                                            </div>
                                         </div>
-                                    )
-                                })}
-                                {recentMunicipios.length === 0 && (
+                                    </div>
+                                ) : (
                                     <div className="col-12 text-center py-4">
                                         <i className="bi bi-building text-muted" style={{ fontSize: 48 }}></i>
-                                        <p className="text-muted mt-3 mb-0">Nenhum município cadastrado</p>
+                                        <p className="text-muted mt-3 mb-0">Município não encontrado</p>
                                     </div>
                                 )}
                             </div>
@@ -215,8 +284,8 @@ export function DashboardPage() {
                                         <p className="mb-0 fw-medium">{solucao.nome}</p>
                                         <small className="text-muted">{solucao.descricao?.substring(0, 30) || 'Sem descrição'}...</small>
                                     </div>
-                                    <span className={`badge ${solucao.status === 'ativo' ? 'bg-success' : 'bg-secondary'}`}>
-                                        {solucao.status}
+                                    <span className={`badge ${solucao.ativo ? 'bg-success' : 'bg-secondary'}`}>
+                                        {solucao.ativo ? 'ativo' : 'inativo'}
                                     </span>
                                 </div>
                             ))}
@@ -229,6 +298,57 @@ export function DashboardPage() {
                     </div>
                 </div>
             </div>
+
+            {/* Links Rápidos */}
+            {solucoes.filter(s => s.ativo && s.link).length > 0 && (
+                <div className="card border-0 shadow-sm mt-4">
+                    <div className="card-header bg-white border-bottom py-3">
+                        <h5 className="mb-0 fw-semibold">
+                            <i className="bi bi-link-45deg me-2 text-primary"></i>
+                            Links Rápidos
+                        </h5>
+                    </div>
+                    <div className="card-body">
+                        <div className="row g-3">
+                            {solucoes.filter(s => s.ativo && s.link).map((solucao) => (
+                                <div key={solucao.id} className="col-12 col-sm-6 col-lg-4 col-xl-3">
+                                    <a
+                                        href={solucao.link}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-decoration-none"
+                                    >
+                                        <div
+                                            className="card border h-100"
+                                            style={{ transition: 'all 0.2s', borderRadius: '12px' }}
+                                            onMouseEnter={(e) => {
+                                                e.currentTarget.style.transform = 'translateY(-2px)'
+                                                e.currentTarget.style.boxShadow = '0 4px 15px rgba(0,0,0,0.1)'
+                                                e.currentTarget.style.borderColor = '#0d6efd'
+                                            }}
+                                            onMouseLeave={(e) => {
+                                                e.currentTarget.style.transform = 'translateY(0)'
+                                                e.currentTarget.style.boxShadow = 'none'
+                                                e.currentTarget.style.borderColor = '#dee2e6'
+                                            }}
+                                        >
+                                            <div className="card-body p-3 d-flex align-items-center gap-3">
+                                                <div className="d-flex align-items-center justify-content-center rounded-3 bg-primary bg-opacity-10" style={{ width: 44, height: 44, flexShrink: 0 }}>
+                                                    <i className="bi bi-box-arrow-up-right text-primary"></i>
+                                                </div>
+                                                <div className="flex-grow-1 overflow-hidden">
+                                                    <p className="fw-semibold mb-0 text-dark">{solucao.nome}</p>
+                                                    <small className="text-muted text-truncate d-block">{solucao.link}</small>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </a>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     )
 }

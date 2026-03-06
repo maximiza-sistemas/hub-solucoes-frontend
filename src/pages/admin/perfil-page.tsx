@@ -7,12 +7,12 @@ export function PerfilPage() {
     const [formData, setFormData] = useState({
         nome: user?.nome || '',
         email: user?.email || '',
-        telefone: user?.telefone || '',
     })
+
+    const isAdmin = user?.role === 'ADMIN' || user?.role === 'SUPERADMIN'
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault()
-        // TODO: Implement profile update API call
         console.log('Updating profile:', formData)
         setIsEditing(false)
     }
@@ -39,9 +39,9 @@ export function PerfilPage() {
                             </div>
                             <h4 className="mb-1">{user?.nome}</h4>
                             <p className="text-muted mb-3">{user?.email}</p>
-                            <span className={`badge ${user?.perfil === 'admin' ? 'bg-primary' : 'bg-info'} px-3 py-2`}>
+                            <span className={`badge ${isAdmin ? 'bg-primary' : 'bg-info'} px-3 py-2`}>
                                 <i className="bi bi-shield-check me-1"></i>
-                                {user?.perfil === 'admin' ? 'Administrador' : 'Gestor Municipal'}
+                                {isAdmin ? 'Administrador' : 'Gestor Municipal'}
                             </span>
 
                             <hr className="my-4" />
@@ -113,22 +113,8 @@ export function PerfilPage() {
                                     <div className="col-md-6">
                                         <label className="form-label text-muted small">Perfil</label>
                                         <p className="mb-0 fw-medium">
-                                            {user?.perfil === 'admin' ? 'Administrador' : 'Gestor Municipal'}
+                                            {isAdmin ? 'Administrador' : 'Gestor Municipal'}
                                         </p>
-                                    </div>
-                                    <div className="col-md-6">
-                                        <label className="form-label text-muted small">Telefone</label>
-                                        {isEditing ? (
-                                            <input
-                                                type="tel"
-                                                className="form-control"
-                                                value={formData.telefone}
-                                                onChange={(e) => setFormData({ ...formData, telefone: e.target.value })}
-                                                placeholder="(00) 00000-0000"
-                                            />
-                                        ) : (
-                                            <p className="mb-0 fw-medium">{user?.telefone || 'Não informado'}</p>
-                                        )}
                                     </div>
                                 </div>
 

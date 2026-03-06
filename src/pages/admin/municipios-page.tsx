@@ -5,15 +5,7 @@ import { useDataStore } from '@/stores'
 export function MunicipiosPage() {
     const {
         municipios,
-        usuarios,
-        alunos,
-        escolas,
         fetchMunicipios,
-        fetchSolucoes,
-        fetchUsuarios,
-        fetchAlunos,
-        fetchEscolas,
-        getSolucoesByMunicipio,
         updateMunicipio,
         deleteMunicipio
     } = useDataStore()
@@ -22,16 +14,12 @@ export function MunicipiosPage() {
     // Fetch data on mount
     useEffect(() => {
         fetchMunicipios()
-        fetchSolucoes()
-        fetchUsuarios()
-        fetchAlunos()
-        fetchEscolas()
-    }, [fetchMunicipios, fetchSolucoes, fetchUsuarios, fetchAlunos, fetchEscolas])
+    }, [fetchMunicipios])
     const [searchTerm, setSearchTerm] = useState('')
     const [statusFilter, setStatusFilter] = useState<string>('todos')
 
     // Dropdown state
-    const [openDropdownId, setOpenDropdownId] = useState<string | null>(null)
+    const [openDropdownId, setOpenDropdownId] = useState<number | null>(null)
     const dropdownRef = useRef<HTMLDivElement>(null)
 
     // Modal states
@@ -43,9 +31,8 @@ export function MunicipiosPage() {
     // Edit form state
     const [editForm, setEditForm] = useState({
         nome: '',
-        estado: '',
-        codigoIBGE: '',
-        status: 'ativo' as 'ativo' | 'inativo'
+        uf: '',
+        slug: '',
     })
 
     const estados = [
@@ -78,24 +65,18 @@ export function MunicipiosPage() {
 
     const filteredMunicipios = municipios.filter((m) => {
         const matchesSearch = m.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            m.estado.toLowerCase().includes(searchTerm.toLowerCase())
-        const matchesStatus = statusFilter === 'todos' || m.status === statusFilter
+            m.uf.toLowerCase().includes(searchTerm.toLowerCase())
+        const matchesStatus = statusFilter === 'todos' ||
+            (statusFilter === 'ativo' && m.ativo) ||
+            (statusFilter === 'inativo' && !m.ativo)
         return matchesSearch && matchesStatus
     })
 
-    const getMunicipioStats = (municipioId: string) => {
-        const userCount = usuarios.filter(u => u.municipioId === municipioId).length
-        const alunoCount = alunos.filter(a => a.municipioId === municipioId).length
-        const escolaCount = escolas.filter(e => e.municipioId === municipioId).length
-        const solucaoCount = getSolucoesByMunicipio(municipioId).length
-        return { userCount, alunoCount, escolaCount, solucaoCount }
-    }
-
-    const handleMunicipioClick = (municipioId: string) => {
+    const handleMunicipioClick = (municipioId: number) => {
         navigate(`/municipio/${municipioId}/dashboard`)
     }
 
-    const toggleDropdown = (e: React.MouseEvent, municipioId: string) => {
+    const toggleDropdown = (e: React.MouseEvent, municipioId: number) => {
         e.stopPropagation()
         setOpenDropdownId(openDropdownId === municipioId ? null : municipioId)
     }
@@ -106,9 +87,8 @@ export function MunicipiosPage() {
         setSelectedMunicipio(municipio)
         setEditForm({
             nome: municipio.nome,
-            estado: municipio.estado,
-            codigoIBGE: municipio.codigoIBGE || '',
-            status: municipio.status
+            uf: municipio.uf,
+            slug: municipio.slug || '',
         })
         setShowEditModal(true)
     }
@@ -126,9 +106,8 @@ export function MunicipiosPage() {
         try {
             await updateMunicipio(selectedMunicipio.id, {
                 nome: editForm.nome,
-                estado: editForm.estado,
-                codigoIBGE: editForm.codigoIBGE || undefined,
-                status: editForm.status
+                uf: editForm.uf,
+                slug: editForm.slug || undefined,
             })
             await fetchMunicipios()
             setShowEditModal(false)
@@ -154,6 +133,8 @@ export function MunicipiosPage() {
             setIsLoading(false)
         }
     }
+
+    const totalAlunos = municipios.reduce((acc, m) => acc + (m.totalAlunos || 0), 0)
 
     return (
         <div className="animate-fadeIn">
@@ -225,7 +206,7 @@ export function MunicipiosPage() {
                             <div className="d-flex align-items-center gap-3">
                                 <i className="bi bi-check-circle" style={{ fontSize: 28 }}></i>
                                 <div>
-                                    <p className="h4 fw-bold mb-0">{municipios.filter(m => m.status === 'ativo').length}</p>
+                                    <p className="h4 fw-bold mb-0">{municipios.filter(m => m.ativo).length}</p>
                                     <p className="small mb-0 opacity-75">Ativos</p>
                                 </div>
                             </div>
@@ -238,7 +219,7 @@ export function MunicipiosPage() {
                             <div className="d-flex align-items-center gap-3">
                                 <i className="bi bi-mortarboard" style={{ fontSize: 28 }}></i>
                                 <div>
-                                    <p className="h4 fw-bold mb-0">{alunos.length.toLocaleString()}</p>
+                                    <p className="h4 fw-bold mb-0">{totalAlunos.toLocaleString()}</p>
                                     <p className="small mb-0 opacity-75">Total de Alunos</p>
                                 </div>
                             </div>
@@ -251,8 +232,8 @@ export function MunicipiosPage() {
                             <div className="d-flex align-items-center gap-3">
                                 <i className="bi bi-people" style={{ fontSize: 28 }}></i>
                                 <div>
-                                    <p className="h4 fw-bold mb-0">{usuarios.filter(u => u.municipioId).length}</p>
-                                    <p className="small mb-0">Usuários Ativos</p>
+                                    <p className="h4 fw-bold mb-0">{municipios.reduce((acc, m) => acc + (m.totalUsuarios || 0), 0)}</p>
+                                    <p className="small mb-0">Usuários</p>
                                 </div>
                             </div>
                         </div>
@@ -263,7 +244,6 @@ export function MunicipiosPage() {
             {/* Municipalities Grid */}
             <div className="row g-4" ref={dropdownRef}>
                 {filteredMunicipios.map((municipio) => {
-                    const stats = getMunicipioStats(municipio.id)
                     const isDropdownOpen = openDropdownId === municipio.id
                     return (
                         <div key={municipio.id} className="col-12 col-md-6 col-xl-4">
@@ -289,14 +269,13 @@ export function MunicipiosPage() {
                                             </div>
                                             <div>
                                                 <h5 className="fw-bold mb-0">{municipio.nome}</h5>
-                                                <span className="text-muted">{municipio.estado}</span>
+                                                <span className="text-muted">{municipio.uf}</span>
                                             </div>
                                         </div>
                                         <div className="d-flex align-items-center gap-2">
-                                            <span className={`badge ${municipio.status === 'ativo' ? 'bg-success' : 'bg-secondary'}`}>
-                                                {municipio.status}
+                                            <span className={`badge ${municipio.ativo ? 'bg-success' : 'bg-secondary'}`}>
+                                                {municipio.ativo ? 'ativo' : 'inativo'}
                                             </span>
-                                            {/* Custom controlled dropdown */}
                                             <div className="position-relative">
                                                 <button
                                                     className="btn btn-sm btn-light"
@@ -332,31 +311,22 @@ export function MunicipiosPage() {
 
                                     <div className="row text-center border-top pt-3 g-0">
                                         <div className="col-3 border-end">
-                                            <p className="h5 fw-bold text-primary mb-0">{stats.solucaoCount}</p>
+                                            <p className="h5 fw-bold text-primary mb-0">{municipio.totalSolucoes}</p>
                                             <p className="text-muted small mb-0">Soluções</p>
                                         </div>
                                         <div className="col-3 border-end">
-                                            <p className="h5 fw-bold text-warning mb-0">{stats.escolaCount}</p>
+                                            <p className="h5 fw-bold text-warning mb-0">{municipio.totalEscolas}</p>
                                             <p className="text-muted small mb-0">Escolas</p>
                                         </div>
                                         <div className="col-3 border-end">
-                                            <p className="h5 fw-bold text-success mb-0">{stats.userCount}</p>
+                                            <p className="h5 fw-bold text-success mb-0">{municipio.totalUsuarios}</p>
                                             <p className="text-muted small mb-0">Usuários</p>
                                         </div>
                                         <div className="col-3">
-                                            <p className="h5 fw-bold text-info mb-0">{stats.alunoCount}</p>
+                                            <p className="h5 fw-bold text-info mb-0">{municipio.totalAlunos}</p>
                                             <p className="text-muted small mb-0">Alunos</p>
                                         </div>
                                     </div>
-                                </div>
-                                <div className="card-footer bg-light border-0 d-flex justify-content-between align-items-center py-2">
-                                    <small className="text-muted">
-                                        <i className="bi bi-calendar3 me-1"></i>
-                                        Desde {new Date(municipio.createdAt).toLocaleDateString('pt-BR')}
-                                    </small>
-                                    <span className="text-primary fw-medium small">
-                                        Acessar <i className="bi bi-arrow-right"></i>
-                                    </span>
                                 </div>
                             </div>
                         </div>
@@ -407,8 +377,8 @@ export function MunicipiosPage() {
                                             </label>
                                             <select
                                                 className="form-select form-select-lg"
-                                                value={editForm.estado}
-                                                onChange={(e) => setEditForm({ ...editForm, estado: e.target.value })}
+                                                value={editForm.uf}
+                                                onChange={(e) => setEditForm({ ...editForm, uf: e.target.value })}
                                             >
                                                 <option value="">Selecione</option>
                                                 {estados.map(e => (
@@ -417,26 +387,14 @@ export function MunicipiosPage() {
                                             </select>
                                         </div>
                                         <div className="col-md-6">
-                                            <label className="form-label fw-medium">Status</label>
-                                            <select
-                                                className="form-select form-select-lg"
-                                                value={editForm.status}
-                                                onChange={(e) => setEditForm({ ...editForm, status: e.target.value as 'ativo' | 'inativo' })}
-                                            >
-                                                <option value="ativo">Ativo</option>
-                                                <option value="inativo">Inativo</option>
-                                            </select>
-                                        </div>
-                                        <div className="col-12">
-                                            <label className="form-label fw-medium">Código IBGE</label>
+                                            <label className="form-label fw-medium">Slug</label>
                                             <input
                                                 type="text"
-                                                className="form-control"
-                                                placeholder="Ex: 3550308"
-                                                value={editForm.codigoIBGE}
-                                                onChange={(e) => setEditForm({ ...editForm, codigoIBGE: e.target.value })}
+                                                className="form-control form-control-lg"
+                                                placeholder="Ex: sao-paulo"
+                                                value={editForm.slug}
+                                                onChange={(e) => setEditForm({ ...editForm, slug: e.target.value })}
                                             />
-                                            <div className="form-text">Opcional</div>
                                         </div>
                                     </div>
                                 </div>

@@ -29,6 +29,9 @@ import {
   MunicipioAlunosPage,
   MunicipioUsuariosPage,
   MunicipioEscolasPage,
+  MunicipioRegioesPage,
+  MunicipioGruposPage,
+  MunicipioTurmasPage,
 } from '@/pages/municipio'
 
 // Auth Guard
@@ -47,7 +50,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 function AdminRoute({ children }: { children: React.ReactNode }) {
   const { user } = useAuthStore()
 
-  if (user?.perfil !== 'admin') {
+  if (user?.role !== 'ADMIN' && user?.role !== 'SUPERADMIN') {
     return <Navigate to={`/municipio/${user?.municipioId}/solucoes`} replace />
   }
 
@@ -157,12 +160,56 @@ export default function App() {
             }
           />
 
+          <Route
+            path="/admin/escolas"
+            element={
+              <AdminRoute>
+                <MunicipioEscolasPage />
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="/admin/turmas"
+            element={
+              <AdminRoute>
+                <MunicipioTurmasPage />
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="/admin/alunos"
+            element={
+              <AdminRoute>
+                <MunicipioAlunosPage />
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="/admin/grupos"
+            element={
+              <AdminRoute>
+                <MunicipioGruposPage />
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="/admin/regioes"
+            element={
+              <AdminRoute>
+                <MunicipioRegioesPage />
+              </AdminRoute>
+            }
+          />
+
           {/* Municipio Routes */}
           <Route path="/municipio/:municipioId/dashboard" element={<MunicipioDashboardPage />} />
           <Route path="/municipio/:municipioId/solucoes" element={<MunicipioSolucoesPage />} />
           <Route path="/municipio/:municipioId/usuarios" element={<MunicipioUsuariosPage />} />
           <Route path="/municipio/:municipioId/alunos" element={<MunicipioAlunosPage />} />
           <Route path="/municipio/:municipioId/escolas" element={<MunicipioEscolasPage />} />
+          <Route path="/municipio/:municipioId/regioes" element={<MunicipioRegioesPage />} />
+          <Route path="/municipio/:municipioId/grupos" element={<MunicipioGruposPage />} />
+          <Route path="/municipio/:municipioId/turmas" element={<MunicipioTurmasPage />} />
         </Route>
 
         {/* Default Redirect */}

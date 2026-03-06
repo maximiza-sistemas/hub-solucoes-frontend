@@ -1,172 +1,156 @@
-// User Types
-export type UserRole = 'admin' | 'gestor' | 'usuario'
+// Auth Types
+export interface LoginCredentials {
+    email: string
+    password: string
+}
 
-export interface User {
-    id: string
+export interface AuthResponse {
+    userId: number
     nome: string
     email: string
-    cpf: string
-    telefone?: string
-    perfil: UserRole
-    municipioId?: string
-    status: 'ativo' | 'inativo'
-    avatar?: string
-    createdAt: string
-    updatedAt: string
+    role: string
+    municipio: string
+    accessToken: string
+    refreshToken: string
+}
+
+export interface AuthUser {
+    id: number
+    nome: string
+    email: string
+    role: string
+    municipio: string
+    municipioId?: number
+}
+
+export interface RegisterData {
+    nome: string
+    email: string
+    password: string
+    municipioId?: number
 }
 
 // Municipality Types
 export interface Municipio {
-    id: string
+    id: number
     nome: string
-    estado: string
-    codigoIBGE?: string
-    logo?: string
-    status: 'ativo' | 'inativo'
+    uf: string
+    slug: string
+    ativo: boolean
     totalUsuarios: number
     totalAlunos: number
     totalSolucoes: number
-    createdAt: string
-    updatedAt: string
+    totalEscolas: number
+    totalTurmas: number
 }
 
 // Solution Types
-export type SolucaoCategoria =
-    | 'educacao'
-    | 'saude'
-    | 'financeiro'
-    | 'administrativo'
-    | 'social'
-    | 'outros'
-
 export interface Solucao {
-    id: string
+    id: number
     nome: string
     descricao: string
-    categoria?: SolucaoCategoria
-    url?: string
-    icone?: string
-    municipioId?: string
-    status: 'ativo' | 'inativo'
-    createdAt: string
-    updatedAt: string
-}
-
-export interface MunicipioSolucao {
-    id: string
-    municipioId: string
-    solucaoId: string
-    dataVinculo: string
+    link?: string
+    municipioId?: number
+    municipio?: string
+    ativo: boolean
 }
 
 // Student Types
 export interface Aluno {
-    id: string
+    id: number
     nome: string
     dataNascimento: string
     cpf?: string
     matricula: string
-    escolaId?: string
-    escola: string
-    serie: string
-    turma: string
-    responsavelNome: string
-    responsavelContato: string
-    municipioId: string
-    status: 'ativo' | 'inativo'
-    createdAt: string
-    updatedAt: string
+    turmaId: number
+    escolaId: number
+    municipioId: number
+    municipio?: string
 }
 
 // School Types
 export interface Escola {
-    id: string
+    id: number
     nome: string
-    codigo: string
-    endereco: string
-    telefone?: string
-    email?: string
-    diretor?: string
-    tipoEnsino: 'infantil' | 'fundamental' | 'medio' | 'integral'
-    turno: 'matutino' | 'vespertino' | 'noturno' | 'integral'
-    totalAlunos: number
-    municipioId: string
-    status: 'ativo' | 'inativo'
-    createdAt: string
-    updatedAt: string
+    grupoId?: number
+    regiaoId?: number
+    grupo?: string
+    regiao?: string
+    municipio?: string
+    municipioId: number
 }
 
-// Auth Types
-export interface AuthState {
-    user: User | null
-    token: string | null
-    isAuthenticated: boolean
-    isLoading: boolean
-}
-
-export interface LoginCredentials {
+// User Types
+export interface Usuario {
+    id: number
+    nome: string
     email: string
-    senha: string
+    tipoUsuario: string
+    municipioId?: number
+    municipio?: string
+    ativo: boolean
 }
 
-// API Response Types
-export interface ApiResponse<T> {
-    success: boolean
-    data?: T
-    message?: string
-    error?: string
+// New Entity Types
+export interface Regiao {
+    id: number
+    nome: string
+    municipioId: number
+    municipio?: string
 }
 
-export interface PaginatedResponse<T> {
-    data: T[]
-    total: number
+export interface Grupo {
+    id: number
+    nome: string
+    municipioId: number
+    municipio?: string
+}
+
+export interface Turma {
+    id: number
+    nome: string
+    turno: string
+    serie: string
+    escolaId: number
+    escola?: string
+    municipioId: number
+    municipio?: string
+}
+
+export interface Role {
+    id: number
+    nome: string
+    descricao?: string
+}
+
+// Pagination
+export interface PageResponse<T> {
+    content: T[]
     page: number
-    pageSize: number
+    size: number
+    totalElements: number
     totalPages: number
-}
-
-// Dashboard Types
-export interface DashboardStats {
-    totalUsuarios: number
-    totalAlunos: number
-    totalSolucoes: number
-    totalMunicipios?: number
-    crescimentoUsuarios: number
-    crescimentoAlunos: number
-}
-
-export interface ChartData {
-    name: string
-    value: number
 }
 
 // Form Types
 export interface MunicipioFormData {
     nome: string
-    estado: string
-    codigoIBGE?: string
-    logo?: File | null
-    status: 'ativo' | 'inativo'
+    uf: string
+    slug?: string
 }
 
 export interface SolucaoFormData {
     nome: string
     descricao: string
-    categoria: SolucaoCategoria
-    url?: string
-    icone?: string
-    status: 'ativo' | 'inativo'
+    link?: string
 }
 
 export interface UsuarioFormData {
     nome: string
     email: string
-    cpf: string
-    telefone?: string
-    perfil: UserRole
-    municipioId?: string
-    status: 'ativo' | 'inativo'
-    senha?: string
+    password?: string
+    tipoUsuarioId?: number
+    municipioId?: number
 }
 
 export interface AlunoFormData {
@@ -174,11 +158,34 @@ export interface AlunoFormData {
     dataNascimento: string
     cpf?: string
     matricula: string
-    escola: string
+    turmaId: number
+    escolaId: number
+}
+
+export interface EscolaFormData {
+    nome: string
+    grupoId?: number
+    regiaoId?: number
+}
+
+export interface RegiaoFormData {
+    nome: string
+}
+
+export interface GrupoFormData {
+    nome: string
+}
+
+export interface TurmaFormData {
+    nome: string
+    turno: string
     serie: string
-    turma: string
-    responsavelNome: string
-    responsavelContato: string
-    municipioId: string
-    status: 'ativo' | 'inativo'
+    escolaId: number
+}
+
+export interface MunicipioSolucao {
+    id: number
+    municipioId: number
+    solucaoId: number
+    dataVinculo: string
 }

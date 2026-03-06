@@ -4,13 +4,11 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useState, useEffect } from 'react'
 import { useDataStore } from '@/stores'
-import { generateId } from '@/lib/utils'
 
 const municipioSchema = z.object({
     nome: z.string().min(3, 'Nome deve ter no mínimo 3 caracteres'),
-    estado: z.string().min(2, 'Selecione o estado'),
-    codigoIBGE: z.string().optional(),
-    status: z.enum(['ativo', 'inativo']),
+    uf: z.string().min(2, 'Selecione o estado'),
+    slug: z.string().optional(),
 })
 
 type MunicipioFormData = z.infer<typeof municipioSchema>
@@ -52,7 +50,7 @@ export function MunicipioFormPage() {
     const [isLoading, setIsLoading] = useState(false)
 
     const { municipios, addMunicipio, updateMunicipio } = useDataStore()
-    const municipio = municipios.find((m) => m.id === id)
+    const municipio = municipios.find((m) => m.id === Number(id))
 
     const {
         register,
@@ -61,42 +59,33 @@ export function MunicipioFormPage() {
         reset,
     } = useForm<MunicipioFormData>({
         resolver: zodResolver(municipioSchema),
-        defaultValues: {
-            status: 'ativo',
-        },
     })
 
     useEffect(() => {
         if (municipio) {
             reset({
                 nome: municipio.nome,
-                estado: municipio.estado,
-                codigoIBGE: municipio.codigoIBGE || '',
-                status: municipio.status,
+                uf: municipio.uf,
+                slug: municipio.slug || '',
             })
         }
     }, [municipio, reset])
 
     const onSubmit = async (data: MunicipioFormData) => {
         setIsLoading(true)
-        await new Promise((resolve) => setTimeout(resolve, 500))
 
-        if (isEditing && id) {
-            updateMunicipio(id, data)
-        } else {
-            addMunicipio({
-                id: generateId(),
-                ...data,
-                totalUsuarios: 0,
-                totalAlunos: 0,
-                totalSolucoes: 0,
-                createdAt: new Date().toISOString(),
-                updatedAt: new Date().toISOString(),
-            })
+        try {
+            if (isEditing && id) {
+                await updateMunicipio(Number(id), data)
+            } else {
+                await addMunicipio(data)
+            }
+            navigate('/admin/municipios')
+        } catch (error) {
+            console.error('Erro ao salvar:', error)
+        } finally {
+            setIsLoading(false)
         }
-
-        setIsLoading(false)
-        navigate('/admin/municipios')
     }
 
     return (
@@ -139,15 +128,15 @@ export function MunicipioFormPage() {
                                     )}
                                 </div>
 
-                                {/* Estado */}
+                                {/* Estado (UF) */}
                                 <div className="mb-4">
-                                    <label htmlFor="estado" className="form-label fw-medium">
+                                    <label htmlFor="uf" className="form-label fw-medium">
                                         Estado <span className="text-danger">*</span>
                                     </label>
                                     <select
-                                        id="estado"
-                                        className={`form-select form-select-lg ${errors.estado ? 'is-invalid' : ''}`}
-                                        {...register('estado')}
+                                        id="uf"
+                                        className={`form-select form-select-lg ${errors.uf ? 'is-invalid' : ''}`}
+                                        {...register('uf')}
                                     >
                                         <option value="">Selecione o estado</option>
                                         {estados.map((estado) => (
@@ -156,48 +145,27 @@ export function MunicipioFormPage() {
                                             </option>
                                         ))}
                                     </select>
-                                    {errors.estado && (
-                                        <div className="invalid-feedback">{errors.estado.message}</div>
+                                    {errors.uf && (
+                                        <div className="invalid-feedback">{errors.uf.message}</div>
                                     )}
                                 </div>
 
-                                {/* Código IBGE */}
+                                {/* Slug */}
                                 <div className="mb-4">
-                                    <label htmlFor="codigoIBGE" className="form-label fw-medium">
-                                        Código IBGE
+                                    <label htmlFor="slug" className="form-label fw-medium">
+                                        Slug
                                     </label>
                                     <input
                                         type="text"
-                                        id="codigoIBGE"
-                                        className={`form-control form-control-lg ${errors.codigoIBGE ? 'is-invalid' : ''}`}
-                                        placeholder="Ex: 3550308"
-                                        {...register('codigoIBGE')}
+                                        id="slug"
+                                        className="form-control form-control-lg"
+                                        placeholder="Ex: sao-paulo"
+                                        {...register('slug')}
                                     />
                                     <div className="form-text">
                                         <i className="bi bi-info-circle me-1"></i>
-                                        Opcional - Código do município no IBGE
+                                        Opcional - Identificador único para URL
                                     </div>
-                                    {errors.codigoIBGE && (
-                                        <div className="invalid-feedback">{errors.codigoIBGE.message}</div>
-                                    )}
-                                </div>
-
-                                {/* Status */}
-                                <div className="mb-4">
-                                    <label htmlFor="status" className="form-label fw-medium">
-                                        Status <span className="text-danger">*</span>
-                                    </label>
-                                    <select
-                                        id="status"
-                                        className={`form-select form-select-lg ${errors.status ? 'is-invalid' : ''}`}
-                                        {...register('status')}
-                                    >
-                                        <option value="ativo">Ativo</option>
-                                        <option value="inativo">Inativo</option>
-                                    </select>
-                                    {errors.status && (
-                                        <div className="invalid-feedback">{errors.status.message}</div>
-                                    )}
                                 </div>
 
                                 {/* Actions */}
