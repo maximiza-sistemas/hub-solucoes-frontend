@@ -1,7 +1,8 @@
 services:
   hub-front-end:
-    build: .
-    context: Dockerfile
+    build:
+      context: .
+      dockerfile: Dockerfile
     ports:
       - "${PORT}:80"
     restart: unless-stopped
