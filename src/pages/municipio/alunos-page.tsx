@@ -2,7 +2,9 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useDataStore } from '@/stores'
 import { Pagination } from '@/components/ui'
-import type { Aluno } from '@/types'
+import { escolasApi, turmasApi } from '@/services/api'
+import { useAuthStore } from '@/stores/auth-store'
+import type { Aluno, Escola, Turma } from '@/types'
 import { formatDateBR } from '@/lib/utils'
 
 export function MunicipioAlunosPage() {
@@ -56,8 +58,33 @@ export function MunicipioAlunosPage() {
         matricula: '',
         turmaId: '',
         escolaId: '',
+        municipioId: munId ? String(munId) : '',
     })
     const [formErrors, setFormErrors] = useState<Record<string, string>>({})
+    const [formEscolas, setFormEscolas] = useState<Escola[]>([])
+    const [formTurmas, setFormTurmas] = useState<Turma[]>([])
+
+    useEffect(() => {
+        const targetMunId = formData.municipioId ? Number(formData.municipioId) : munId
+        if (targetMunId) {
+            const token = useAuthStore.getState().accessToken
+            escolasApi.list(token, { municipioId: targetMunId, size: 1000 })
+                .then(res => {
+                    const content = Array.isArray(res?.content) ? res.content : Array.isArray(res) ? res : []
+                    setFormEscolas(content)
+                })
+                .catch(console.error)
+            turmasApi.list(token, { municipioId: targetMunId, size: 1000 })
+                .then(res => {
+                    const content = Array.isArray(res?.content) ? res.content : Array.isArray(res) ? res : []
+                    setFormTurmas(content)
+                })
+                .catch(console.error)
+        } else {
+            setFormEscolas([])
+            setFormTurmas([])
+        }
+    }, [formData.municipioId, munId])
 
     useEffect(() => {
         fetchMunicipios()
@@ -66,8 +93,6 @@ export function MunicipioAlunosPage() {
     }, [munId, fetchMunicipios, fetchEscolas, fetchTurmas])
 
     const municipio = munId ? municipios.find((m) => m.id === munId) : undefined
-    const municipioEscolas = escolas
-    const municipioTurmas = turmas
     const alunosPagination = pagination.alunos || { page: 0, size: pageSize, totalElements: 0, totalPages: 0 }
 
     const refetchAlunos = () =>
@@ -130,7 +155,7 @@ export function MunicipioAlunosPage() {
     }
 
     const resetForm = () => {
-        setFormData({ nome: '', dataNascimento: '', cpf: '', matricula: '', turmaId: '', escolaId: '' })
+        setFormData({ nome: '', dataNascimento: '', cpf: '', matricula: '', turmaId: '', escolaId: '', municipioId: munId ? String(munId) : '' })
         setFormErrors({})
         setError(null)
     }
@@ -146,6 +171,7 @@ export function MunicipioAlunosPage() {
             matricula: aluno.matricula,
             turmaId: aluno.turmaId ? String(aluno.turmaId) : '',
             escolaId: aluno.escolaId ? String(aluno.escolaId) : '',
+            municipioId: aluno.municipioId ? String(aluno.municipioId) : munId ? String(munId) : '',
         })
         setFormErrors({})
         setError(null)
@@ -174,7 +200,7 @@ export function MunicipioAlunosPage() {
                 matricula: formData.matricula,
                 turmaId: Number(formData.turmaId),
                 escolaId: Number(formData.escolaId),
-                ...(munId && { municipioId: munId }),
+                municipioId: Number(formData.municipioId) || munId,
             })
             await refetchAlunos()
             setShowAddModal(false)
@@ -263,19 +289,26 @@ export function MunicipioAlunosPage() {
                 <input type="text" className={`form-control ${formErrors.matricula ? 'is-invalid' : ''}`} placeholder="Número de matrícula" value={formData.matricula} onChange={(e) => setFormData({ ...formData, matricula: e.target.value })} />
                 {formErrors.matricula && <div className="invalid-feedback">{formErrors.matricula}</div>}
             </div>
+            <div className="col-md-12">
+                <label className="form-label fw-medium">Município <span className="text-danger">*</span></label>
+                <select className="form-select" value={formData.municipioId} onChange={(e) => setFormData({ ...formData, municipioId: e.target.value, escolaId: '', turmaId: '' })} disabled={!!munId} required>
+                    <option value="">Selecione um município</option>
+                    {municipios.map(m => <option key={m.id} value={m.id}>{m.nome} - {m.uf}</option>)}
+                </select>
+            </div>
             <div className="col-md-6">
                 <label className="form-label fw-medium">Escola <span className="text-danger">*</span></label>
-                <select className={`form-select ${formErrors.escolaId ? 'is-invalid' : ''}`} value={formData.escolaId} onChange={(e) => setFormData({ ...formData, escolaId: e.target.value })}>
-                    <option value="">Selecione uma escola</option>
-                    {municipioEscolas.map(escola => <option key={escola.id} value={escola.id}>{escola.nome}</option>)}
+                <select className={`form-select ${formErrors.escolaId ? 'is-invalid' : ''}`} value={formData.escolaId} onChange={(e) => setFormData({ ...formData, escolaId: e.target.value, turmaId: '' })} disabled={!formData.municipioId}>
+                    <option value="">{formData.municipioId ? 'Selecione uma escola' : 'Selecione um município primeiro'}</option>
+                    {formEscolas.map(escola => <option key={escola.id} value={escola.id}>{escola.nome}</option>)}
                 </select>
                 {formErrors.escolaId && <div className="invalid-feedback">{formErrors.escolaId}</div>}
             </div>
             <div className="col-md-6">
                 <label className="form-label fw-medium">Turma <span className="text-danger">*</span></label>
-                <select className={`form-select ${formErrors.turmaId ? 'is-invalid' : ''}`} value={formData.turmaId} onChange={(e) => setFormData({ ...formData, turmaId: e.target.value })}>
-                    <option value="">Selecione uma turma</option>
-                    {municipioTurmas.map(turma => <option key={turma.id} value={turma.id}>{turma.nome} - {turma.serie}</option>)}
+                <select className={`form-select ${formErrors.turmaId ? 'is-invalid' : ''}`} value={formData.turmaId} onChange={(e) => setFormData({ ...formData, turmaId: e.target.value })} disabled={!formData.municipioId}>
+                    <option value="">{formData.municipioId ? 'Selecione uma turma' : 'Selecione um município primeiro'}</option>
+                    {(formData.escolaId ? formTurmas.filter(t => String(t.escolaId) === formData.escolaId) : formTurmas).map(turma => <option key={turma.id} value={turma.id}>{turma.nome} - {turma.serie}</option>)}
                 </select>
                 {formErrors.turmaId && <div className="invalid-feedback">{formErrors.turmaId}</div>}
             </div>

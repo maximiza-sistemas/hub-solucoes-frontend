@@ -7,7 +7,9 @@ export function MunicipiosPage() {
         municipios,
         fetchMunicipios,
         updateMunicipio,
-        deleteMunicipio
+        deleteMunicipio,
+        ativarMunicipio,
+        inativarMunicipio,
     } = useDataStore()
     const navigate = useNavigate()
 
@@ -98,6 +100,20 @@ export function MunicipiosPage() {
         setOpenDropdownId(null)
         setSelectedMunicipio(municipio)
         setShowDeleteModal(true)
+    }
+
+    const handleToggleAtivo = async (e: React.MouseEvent, municipio: typeof municipios[0]) => {
+        e.stopPropagation()
+        setOpenDropdownId(null)
+        try {
+            if (municipio.ativo) {
+                await inativarMunicipio(municipio.id)
+            } else {
+                await ativarMunicipio(municipio.id)
+            }
+        } catch (error) {
+            console.error('Erro ao alterar status:', error)
+        }
     }
 
     const handleSaveEdit = async () => {
@@ -294,6 +310,13 @@ export function MunicipiosPage() {
                                                         >
                                                             <i className="bi bi-pencil text-primary"></i>
                                                             Editar
+                                                        </button>
+                                                        <button
+                                                            className={`dropdown-item d-flex align-items-center gap-2 px-3 py-2 ${municipio.ativo ? 'text-warning' : 'text-success'}`}
+                                                            onClick={(e) => handleToggleAtivo(e, municipio)}
+                                                        >
+                                                            <i className={`bi ${municipio.ativo ? 'bi-x-circle' : 'bi-check-circle'}`}></i>
+                                                            {municipio.ativo ? 'Inativar' : 'Ativar'}
                                                         </button>
                                                         <hr className="dropdown-divider my-1" />
                                                         <button

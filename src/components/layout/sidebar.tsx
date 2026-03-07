@@ -7,11 +7,14 @@ export function Sidebar() {
     const { user } = useAuthStore()
 
     const isAdmin = user?.role === 'ADMIN' || user?.role === 'SUPERADMIN'
+    const isSuperAdmin = user?.role === 'SUPERADMIN'
 
     const adminMenuItems = [
         { path: '/admin/dashboard', label: 'Dashboard', icon: 'bi-speedometer2' },
-        { path: '/admin/municipios', label: 'Municípios', icon: 'bi-building' },
-        { path: '/admin/solucoes', label: 'Soluções', icon: 'bi-mortarboard' },
+        ...(isSuperAdmin ? [
+            { path: '/admin/municipios', label: 'Municípios', icon: 'bi-building' },
+            { path: '/admin/solucoes', label: 'Soluções', icon: 'bi-mortarboard' },
+        ] : []),
         { path: '/admin/usuarios', label: 'Usuários', icon: 'bi-people' },
         { path: '/admin/escolas', label: 'Escolas', icon: 'bi-building' },
         { path: '/admin/turmas', label: 'Turmas', icon: 'bi-journal-text' },

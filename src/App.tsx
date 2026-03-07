@@ -57,6 +57,19 @@ function AdminRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>
 }
 
+function SuperAdminRoute({ children }: { children: React.ReactNode }) {
+  const { user } = useAuthStore()
+
+  if (user?.role !== 'SUPERADMIN') {
+    const redirectTo = user?.role === 'ADMIN'
+      ? '/admin/dashboard'
+      : `/municipio/${user?.municipioId}/solucoes`
+    return <Navigate to={redirectTo} replace />
+  }
+
+  return <>{children}</>
+}
+
 export default function App() {
   return (
     <BrowserRouter>
@@ -94,49 +107,49 @@ export default function App() {
           <Route
             path="/admin/municipios"
             element={
-              <AdminRoute>
+              <SuperAdminRoute>
                 <MunicipiosPage />
-              </AdminRoute>
+              </SuperAdminRoute>
             }
           />
           <Route
             path="/admin/municipios/novo"
             element={
-              <AdminRoute>
+              <SuperAdminRoute>
                 <MunicipioFormPage />
-              </AdminRoute>
+              </SuperAdminRoute>
             }
           />
           <Route
             path="/admin/municipios/:id/editar"
             element={
-              <AdminRoute>
+              <SuperAdminRoute>
                 <MunicipioFormPage />
-              </AdminRoute>
+              </SuperAdminRoute>
             }
           />
           <Route
             path="/admin/solucoes"
             element={
-              <AdminRoute>
+              <SuperAdminRoute>
                 <SolucoesPage />
-              </AdminRoute>
+              </SuperAdminRoute>
             }
           />
           <Route
             path="/admin/solucoes/nova"
             element={
-              <AdminRoute>
+              <SuperAdminRoute>
                 <SolucaoFormPage />
-              </AdminRoute>
+              </SuperAdminRoute>
             }
           />
           <Route
             path="/admin/solucoes/:id/editar"
             element={
-              <AdminRoute>
+              <SuperAdminRoute>
                 <SolucaoFormPage />
-              </AdminRoute>
+              </SuperAdminRoute>
             }
           />
           <Route

@@ -12,7 +12,13 @@ export function MunicipioRegioesPage() {
     const munId = municipioId ? Number(municipioId) : undefined
     const [currentPage, setCurrentPage] = useState(0)
     const [pageSize, setPageSize] = useState(10)
-    const [debouncedSearch, setDebouncedSearch] = useState('')
+    const [searchTerm, setSearchTerm] = useState('')
+    const [municipioFilter, setMunicipioFilter] = useState(munId ? String(munId) : '')
+
+    const [appliedFilters, setAppliedFilters] = useState({
+        searchTerm: '',
+        municipioFilter: munId ? String(munId) : ''
+    })
 
     useEffect(() => {
         fetchMunicipios()
@@ -23,33 +29,36 @@ export function MunicipioRegioesPage() {
     const [showDeleteModal, setShowDeleteModal] = useState(false)
     const [selectedRegiao, setSelectedRegiao] = useState<Regiao | null>(null)
     const [isLoading, setIsLoading] = useState(false)
-    const [searchTerm, setSearchTerm] = useState('')
 
-    const [formData, setFormData] = useState({ nome: '' })
+    const [formData, setFormData] = useState({ nome: '', municipioId: munId ? String(munId) : '' })
     const [formErrors, setFormErrors] = useState<Record<string, string>>({})
-
-    useEffect(() => {
-        const timer = setTimeout(() => setDebouncedSearch(searchTerm), 400)
-        return () => clearTimeout(timer)
-    }, [searchTerm])
-
-    useEffect(() => {
-        setCurrentPage(0)
-    }, [debouncedSearch, pageSize, munId])
 
     const regioesPagination = pagination.regioes || { page: 0, size: pageSize, totalElements: 0, totalPages: 0 }
 
     const refetchRegioes = () =>
         fetchRegioes({
-            municipioId: munId,
+            municipioId: munId || (appliedFilters.municipioFilter ? Number(appliedFilters.municipioFilter) : undefined),
             page: currentPage,
             size: pageSize,
-            nome: debouncedSearch || undefined,
+            nome: appliedFilters.searchTerm || undefined,
         })
 
     useEffect(() => {
         refetchRegioes()
-    }, [munId, currentPage, pageSize, debouncedSearch])
+    }, [munId, currentPage, pageSize, appliedFilters])
+
+    const handleApplyFilters = () => {
+        setCurrentPage(0)
+        setAppliedFilters({ searchTerm, municipioFilter })
+    }
+
+    const handleClearFilters = () => {
+        setSearchTerm('')
+        const initialMun = munId ? String(munId) : ''
+        setMunicipioFilter(initialMun)
+        setCurrentPage(0)
+        setAppliedFilters({ searchTerm: '', municipioFilter: initialMun })
+    }
 
     const municipio = munId ? municipios.find((m) => m.id === munId) : undefined
 
@@ -67,7 +76,7 @@ export function MunicipioRegioesPage() {
         if (!validateForm()) return
         setIsLoading(true)
         try {
-            await addRegiao({ nome: formData.nome, ...(munId && { municipioId: munId }) })
+            await addRegiao({ nome: formData.nome, municipioId: formData.municipioId ? Number(formData.municipioId) : munId })
             await refetchRegioes()
             setShowAddModal(false)
         } catch (error) { console.error('Erro:', error) }
@@ -111,18 +120,38 @@ export function MunicipioRegioesPage() {
                     </div>
                     {municipio && <p className="text-muted mb-0">{municipio.nome} - {municipio.uf}</p>}
                 </div>
-                <button className="btn btn-primary d-flex align-items-center gap-2" onClick={() => { setFormData({ nome: '' }); setFormErrors({}); setShowAddModal(true) }}>
+                <button className="btn btn-primary d-flex align-items-center gap-2" onClick={() => { setFormData({ nome: '', municipioId: munId ? String(munId) : '' }); setFormErrors({}); setShowAddModal(true) }}>
                     <i className="bi bi-plus-lg"></i>Nova Região
                 </button>
             </div>
 
             <div className="card border-0 shadow-sm mb-4">
-                <div className="card-body">
-                    <div className="row g-3">
-                        <div className="col-12">
+                <div className="card-body py-3">
+                    <div className="row g-3 align-items-end">
+                        <div className={`col-12 ${!munId ? 'col-lg-6' : ''}`}>
+                            <label className="form-label text-muted small mb-1">Busca</label>
                             <div className="input-group">
                                 <span className="input-group-text bg-white"><i className="bi bi-search"></i></span>
                                 <input type="text" className="form-control" placeholder="Buscar região..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+                            </div>
+                        </div>
+                        {!munId && (
+                            <div className="col-12 col-lg-6">
+                                <label className="form-label text-muted small mb-1">Município</label>
+                                <select className="form-select" value={municipioFilter} onChange={e => setMunicipioFilter(e.target.value)}>
+                                    <option value="">Todos os municípios</option>
+                                    {(municipios || []).map(m => <option key={m.id} value={m.id}>{m.nome}</option>)}
+                                </select>
+                            </div>
+                        )}
+                        <div className="col-12">
+                            <div className="d-flex justify-content-end align-items-center gap-2">
+                                <button className="btn btn-primary px-4" onClick={handleApplyFilters}>
+                                    <i className="bi bi-search me-2"></i>Aplicar Filtros
+                                </button>
+                                <button className="btn btn-outline-secondary px-4" onClick={handleClearFilters}>
+                                    <i className="bi bi-arrow-counterclockwise me-2"></i>Limpar
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -151,7 +180,7 @@ export function MunicipioRegioesPage() {
                                             <td className="align-middle"><span className="text-muted">{regiao.municipio || getMunicipioNome(regiao.municipioId)}</span></td>
                                             <td className="align-middle text-end">
                                                 <div className="btn-group btn-group-sm">
-                                                    <button className="btn btn-outline-primary" onClick={() => { setSelectedRegiao(regiao); setFormData({ nome: regiao.nome }); setFormErrors({}); setShowEditModal(true) }}><i className="bi bi-pencil"></i></button>
+                                                    <button className="btn btn-outline-primary" onClick={() => { setSelectedRegiao(regiao); setFormData({ nome: regiao.nome, municipioId: regiao.municipioId ? String(regiao.municipioId) : munId ? String(munId) : '' }); setFormErrors({}); setShowEditModal(true) }}><i className="bi bi-pencil"></i></button>
                                                     <button className="btn btn-outline-danger" onClick={() => { setSelectedRegiao(regiao); setShowDeleteModal(true) }}><i className="bi bi-trash"></i></button>
                                                 </div>
                                             </td>
@@ -180,7 +209,7 @@ export function MunicipioRegioesPage() {
                 <div className="text-center py-5">
                     <i className="bi bi-geo-alt text-muted" style={{ fontSize: 48 }}></i>
                     <p className="text-muted mt-3">Nenhuma região cadastrada</p>
-                    <button className="btn btn-primary mt-2" onClick={() => { setFormData({ nome: '' }); setFormErrors({}); setShowAddModal(true) }}>
+                    <button className="btn btn-primary mt-2" onClick={() => { setFormData({ nome: '', municipioId: munId ? String(munId) : '' }); setFormErrors({}); setShowAddModal(true) }}>
                         <i className="bi bi-plus-lg me-2"></i>Cadastrar Região
                     </button>
                 </div>
@@ -191,9 +220,18 @@ export function MunicipioRegioesPage() {
                 <><div className="modal fade show d-block" tabIndex={-1}><div className="modal-dialog modal-dialog-centered"><div className="modal-content border-0 shadow">
                     <div className="modal-header bg-primary text-white"><h5 className="modal-title"><i className="bi bi-plus-circle me-2"></i>Nova Região</h5><button type="button" className="btn-close btn-close-white" onClick={() => setShowAddModal(false)}></button></div>
                     <form onSubmit={handleAddSubmit}><div className="modal-body p-4">
-                        <label className="form-label fw-medium">Nome <span className="text-danger">*</span></label>
-                        <input type="text" className={`form-control form-control-lg ${formErrors.nome ? 'is-invalid' : ''}`} placeholder="Nome da região" value={formData.nome} onChange={(e) => setFormData({ nome: e.target.value })} />
-                        {formErrors.nome && <div className="invalid-feedback">{formErrors.nome}</div>}
+                        <div className="mb-3">
+                            <label className="form-label fw-medium">Município <span className="text-danger">*</span></label>
+                            <select className="form-select" value={formData.municipioId} onChange={(e) => setFormData({ ...formData, municipioId: e.target.value })} disabled={!!munId} required>
+                                <option value="">Selecione um município</option>
+                                {municipios.map(m => <option key={m.id} value={m.id}>{m.nome} - {m.uf}</option>)}
+                            </select>
+                        </div>
+                        <div>
+                            <label className="form-label fw-medium">Nome <span className="text-danger">*</span></label>
+                            <input type="text" className={`form-control ${formErrors.nome ? 'is-invalid' : ''}`} placeholder="Nome da região" value={formData.nome} onChange={(e) => setFormData({ ...formData, nome: e.target.value })} />
+                            {formErrors.nome && <div className="invalid-feedback">{formErrors.nome}</div>}
+                        </div>
                     </div>
                         <div className="modal-footer bg-light">
                             <button type="button" className="btn btn-outline-secondary" onClick={() => setShowAddModal(false)}>Cancelar</button>
@@ -207,9 +245,18 @@ export function MunicipioRegioesPage() {
                 <><div className="modal fade show d-block" tabIndex={-1}><div className="modal-dialog modal-dialog-centered"><div className="modal-content border-0 shadow">
                     <div className="modal-header bg-primary text-white"><h5 className="modal-title"><i className="bi bi-pencil me-2"></i>Editar Região</h5><button type="button" className="btn-close btn-close-white" onClick={() => { setShowEditModal(false); setSelectedRegiao(null) }}></button></div>
                     <form onSubmit={handleEditSubmit}><div className="modal-body p-4">
-                        <label className="form-label fw-medium">Nome <span className="text-danger">*</span></label>
-                        <input type="text" className={`form-control form-control-lg ${formErrors.nome ? 'is-invalid' : ''}`} value={formData.nome} onChange={(e) => setFormData({ nome: e.target.value })} />
-                        {formErrors.nome && <div className="invalid-feedback">{formErrors.nome}</div>}
+                        <div className="mb-3">
+                            <label className="form-label fw-medium">Município <span className="text-danger">*</span></label>
+                            <select className="form-select" value={formData.municipioId} onChange={(e) => setFormData({ ...formData, municipioId: e.target.value })} disabled={!!munId} required>
+                                <option value="">Selecione um município</option>
+                                {municipios.map(m => <option key={m.id} value={m.id}>{m.nome} - {m.uf}</option>)}
+                            </select>
+                        </div>
+                        <div>
+                            <label className="form-label fw-medium">Nome <span className="text-danger">*</span></label>
+                            <input type="text" className={`form-control ${formErrors.nome ? 'is-invalid' : ''}`} value={formData.nome} onChange={(e) => setFormData({ ...formData, nome: e.target.value })} />
+                            {formErrors.nome && <div className="invalid-feedback">{formErrors.nome}</div>}
+                        </div>
                     </div>
                         <div className="modal-footer bg-light">
                             <button type="button" className="btn btn-outline-secondary" onClick={() => { setShowEditModal(false); setSelectedRegiao(null) }}>Cancelar</button>

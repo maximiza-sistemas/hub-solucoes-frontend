@@ -352,17 +352,17 @@ export const useDataStore = create<DataState>((set, get) => ({
 
     ativarMunicipio: async (id) => {
         const token = useAuthStore.getState().accessToken
-        const updated = await municipiosApi.ativar(id, token)
+        await municipiosApi.ativar(id, token)
         set((state) => ({
-            municipios: state.municipios.map((m) => (m.id === id ? updated : m)),
+            municipios: state.municipios.map((m) => (m.id === id ? { ...m, ativo: true } : m)),
         }))
     },
 
     inativarMunicipio: async (id) => {
         const token = useAuthStore.getState().accessToken
-        const updated = await municipiosApi.inativar(id, token)
+        await municipiosApi.inativar(id, token)
         set((state) => ({
-            municipios: state.municipios.map((m) => (m.id === id ? updated : m)),
+            municipios: state.municipios.map((m) => (m.id === id ? { ...m, ativo: false } : m)),
         }))
     },
 

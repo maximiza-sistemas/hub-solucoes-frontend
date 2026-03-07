@@ -160,10 +160,10 @@ export const municipiosApi = {
         request<void>(`/municipios/${id}`, { method: 'DELETE', token }),
 
     ativar: (id: number, token?: string | null) =>
-        request<Municipio>(`/municipios/${id}/ativar`, { method: 'PATCH', token }),
+        request<void>(`/municipios/${id}/ativar`, { method: 'GET', token }),
 
     inativar: (id: number, token?: string | null) =>
-        request<Municipio>(`/municipios/${id}/inativar`, { method: 'PATCH', token }),
+        request<void>(`/municipios/${id}/inativar`, { method: 'GET', token }),
 }
 
 // Usuarios API

@@ -29,9 +29,7 @@ export function MunicipioEscolasPage() {
 
     useEffect(() => {
         fetchMunicipios()
-        fetchGrupos(munId)
-        fetchRegioes(munId)
-    }, [munId, fetchMunicipios, fetchGrupos, fetchRegioes])
+    }, [fetchMunicipios])
 
     const [showAddModal, setShowAddModal] = useState(false)
     const [showEditModal, setShowEditModal] = useState(false)
@@ -43,8 +41,18 @@ export function MunicipioEscolasPage() {
     const [regiaoFilter, setRegiaoFilter] = useState('')
     const [municipioFilter, setMunicipioFilter] = useState('')
 
-    const [formData, setFormData] = useState({ nome: '', grupoId: '', regiaoId: '' })
+    const [formData, setFormData] = useState({ nome: '', grupoId: '', regiaoId: '', municipioId: munId ? String(munId) : '' })
     const [formErrors, setFormErrors] = useState<Record<string, string>>({})
+
+    const formMunicipioId = formData.municipioId ? Number(formData.municipioId) : munId
+
+    useEffect(() => {
+        const targetMunId = formMunicipioId || munId
+        if (targetMunId) {
+            fetchGrupos(targetMunId)
+            fetchRegioes(targetMunId)
+        }
+    }, [formMunicipioId, munId, fetchGrupos, fetchRegioes])
 
     useEffect(() => {
         const timer = setTimeout(() => setDebouncedSearch(searchTerm), 400)
@@ -87,7 +95,7 @@ export function MunicipioEscolasPage() {
     }
 
     const resetForm = () => {
-        setFormData({ nome: '', grupoId: '', regiaoId: '' })
+        setFormData({ nome: '', grupoId: '', regiaoId: '', municipioId: munId ? String(munId) : '' })
         setFormErrors({})
     }
 
@@ -99,6 +107,7 @@ export function MunicipioEscolasPage() {
             nome: escola.nome,
             grupoId: escola.grupoId ? String(escola.grupoId) : '',
             regiaoId: escola.regiaoId ? String(escola.regiaoId) : '',
+            municipioId: escola.municipioId ? String(escola.municipioId) : '',
         })
         setFormErrors({})
         setShowEditModal(true)
@@ -113,7 +122,7 @@ export function MunicipioEscolasPage() {
                 nome: formData.nome,
                 grupoId: formData.grupoId ? Number(formData.grupoId) : undefined,
                 regiaoId: formData.regiaoId ? Number(formData.regiaoId) : undefined,
-                ...(munId && { municipioId: munId }),
+                municipioId: formData.municipioId ? Number(formData.municipioId) : munId,
             })
             await refetchEscolas()
             setShowAddModal(false)
@@ -336,6 +345,13 @@ export function MunicipioEscolasPage() {
                             <input type="text" className={`form-control form-control-lg ${formErrors.nome ? 'is-invalid' : ''}`} placeholder="Ex: EMEF Maria Montessori" value={formData.nome} onChange={(e) => setFormData({ ...formData, nome: e.target.value })} />
                             {formErrors.nome && <div className="invalid-feedback">{formErrors.nome}</div>}
                         </div>
+                        <div className="col-12">
+                            <label className="form-label fw-medium">Município <span className="text-danger">*</span></label>
+                            <select className="form-select" value={formData.municipioId} onChange={(e) => setFormData({ ...formData, municipioId: e.target.value, grupoId: '', regiaoId: '' })} disabled={!!munId}>
+                                <option value="">Selecione um município</option>
+                                {municipios.map(m => <option key={m.id} value={m.id}>{m.nome} - {m.uf}</option>)}
+                            </select>
+                        </div>
                         <div className="col-md-6">
                             <label className="form-label fw-medium">Grupo</label>
                             <select className="form-select" value={formData.grupoId} onChange={(e) => setFormData({ ...formData, grupoId: e.target.value })}>
@@ -372,6 +388,13 @@ export function MunicipioEscolasPage() {
                             <label className="form-label fw-medium">Nome da Escola <span className="text-danger">*</span></label>
                             <input type="text" className={`form-control form-control-lg ${formErrors.nome ? 'is-invalid' : ''}`} value={formData.nome} onChange={(e) => setFormData({ ...formData, nome: e.target.value })} />
                             {formErrors.nome && <div className="invalid-feedback">{formErrors.nome}</div>}
+                        </div>
+                        <div className="col-12">
+                            <label className="form-label fw-medium">Município <span className="text-danger">*</span></label>
+                            <select className="form-select" value={formData.municipioId} onChange={(e) => setFormData({ ...formData, municipioId: e.target.value, grupoId: '', regiaoId: '' })} disabled={!!munId}>
+                                <option value="">Selecione um município</option>
+                                {municipios.map(m => <option key={m.id} value={m.id}>{m.nome} - {m.uf}</option>)}
+                            </select>
                         </div>
                         <div className="col-md-6">
                             <label className="form-label fw-medium">Grupo</label>
