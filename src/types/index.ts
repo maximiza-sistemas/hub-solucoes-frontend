@@ -189,3 +189,17 @@ export interface MunicipioSolucao {
     solucaoId: number
     dataVinculo: string
 }
+
+// Import Types
+export interface ImportError {
+    linha: number
+    aluno: string
+    motivo: string
+}
+
+export interface ImportResult {
+    totalLinhas: number
+    sucesso: number
+    erros: number
+    falhas: ImportError[]
+}

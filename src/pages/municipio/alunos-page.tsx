@@ -6,6 +6,8 @@ import { escolasApi, turmasApi } from '@/services/api'
 import { useAuthStore } from '@/stores/auth-store'
 import type { Aluno, Escola, Turma } from '@/types'
 import { formatDateBR } from '@/lib/utils'
+import { AlunoImportModal } from '@/components/aluno-import-modal'
+import { downloadAlunoTemplate } from '@/lib/aluno-template'
 
 export function MunicipioAlunosPage() {
     const { municipioId } = useParams()
@@ -47,6 +49,7 @@ export function MunicipioAlunosPage() {
     const [showAddModal, setShowAddModal] = useState(false)
     const [showEditModal, setShowEditModal] = useState(false)
     const [showDeleteModal, setShowDeleteModal] = useState(false)
+    const [showImportModal, setShowImportModal] = useState(false)
     const [selectedAluno, setSelectedAluno] = useState<Aluno | null>(null)
     const [isLoading, setIsLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
@@ -329,9 +332,17 @@ export function MunicipioAlunosPage() {
                     </div>
                     {municipio && <p className="text-muted mb-0">{municipio.nome} - {municipio.uf}</p>}
                 </div>
-                <button className="btn btn-primary d-flex align-items-center gap-2" onClick={handleOpenAddModal}>
-                    <i className="bi bi-plus-lg"></i>Novo Aluno
-                </button>
+                <div className="d-flex gap-2">
+                    <button className="btn btn-outline-success d-flex align-items-center gap-2" onClick={downloadAlunoTemplate}>
+                        <i className="bi bi-download"></i>Template
+                    </button>
+                    <button className="btn btn-success d-flex align-items-center gap-2" onClick={() => setShowImportModal(true)}>
+                        <i className="bi bi-file-earmark-excel"></i>Importar Alunos
+                    </button>
+                    <button className="btn btn-primary d-flex align-items-center gap-2" onClick={handleOpenAddModal}>
+                        <i className="bi bi-plus-lg"></i>Novo Aluno
+                    </button>
+                </div>
             </div>
 
             {/* Filtros */}
@@ -503,6 +514,13 @@ export function MunicipioAlunosPage() {
                     </form>
                 </div></div></div><div className="modal-backdrop fade show"></div></>
             )}
+
+            {/* Modal Importar */}
+            <AlunoImportModal
+                isOpen={showImportModal}
+                onClose={() => setShowImportModal(false)}
+                onImportSuccess={refetchAlunos}
+            />
 
             {/* Modal Excluir */}
             {showDeleteModal && selectedAluno && (

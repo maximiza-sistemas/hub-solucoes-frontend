@@ -10,6 +10,7 @@ import type {
     Turma,
     Role,
     PageResponse,
+    ImportResult,
 } from '@/types'
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080'
@@ -116,6 +117,69 @@ async function request<T>(endpoint: string, options: RequestOptions = {}): Promi
     // Handle 204 No Content
     if (response.status === 204) {
         return undefined as T
+    }
+
+    return response.json()
+}
+
+async function uploadFile<T>(endpoint: string, file: File, fieldName: string, token?: string | null): Promise<T> {
+    const formData = new FormData()
+    formData.append(fieldName, file)
+
+    const headers: HeadersInit = {}
+    if (token) {
+        headers['Authorization'] = `Bearer ${token}`
+    }
+
+    const url = `${API_BASE_URL}${endpoint}`
+    const response = await fetch(url, { method: 'POST', headers, body: formData })
+
+    if ((response.status === 401 || response.status === 403) && token) {
+        const { useAuthStore } = await import('@/stores/auth-store')
+        const refreshToken = useAuthStore.getState().refreshToken
+
+        if (refreshToken && !isRefreshing) {
+            isRefreshing = true
+            refreshPromise = authApi.refresh(refreshToken)
+
+            try {
+                const tokens = await refreshPromise
+                useAuthStore.getState().updateTokens(tokens.accessToken, tokens.refreshToken)
+                isRefreshing = false
+                refreshPromise = null
+
+                headers['Authorization'] = `Bearer ${tokens.accessToken}`
+                const retryResponse = await fetch(url, { method: 'POST', headers, body: formData })
+                if (!retryResponse.ok) {
+                    const error = await retryResponse.json().catch(() => ({ error: 'Erro desconhecido' }))
+                    throw new Error(error.error || error.message || 'Erro na requisição')
+                }
+                return retryResponse.json()
+            } catch {
+                isRefreshing = false
+                refreshPromise = null
+                useAuthStore.getState().logout()
+                throw new Error('Sessão expirada. Faça login novamente.')
+            }
+        } else if (isRefreshing && refreshPromise) {
+            try {
+                const tokens = await refreshPromise
+                headers['Authorization'] = `Bearer ${tokens.accessToken}`
+                const retryResponse = await fetch(url, { method: 'POST', headers, body: formData })
+                if (!retryResponse.ok) {
+                    const error = await retryResponse.json().catch(() => ({ error: 'Erro desconhecido' }))
+                    throw new Error(error.error || error.message || 'Erro na requisição')
+                }
+                return retryResponse.json()
+            } catch {
+                throw new Error('Sessão expirada. Faça login novamente.')
+            }
+        }
+    }
+
+    if (!response.ok) {
+        const error = await response.json().catch(() => ({ error: 'Erro desconhecido' }))
+        throw new Error(error.error || error.message || 'Erro na requisição')
     }
 
     return response.json()
@@ -248,6 +312,9 @@ export const alunosApi = {
 
     delete: (id: number, token?: string | null) =>
         request<void>(`/alunos/${id}`, { method: 'DELETE', token }),
+
+    importFile: (file: File, token?: string | null) =>
+        uploadFile<ImportResult>('/alunos/import', file, 'file', token),
 }
 
 // Regioes API
