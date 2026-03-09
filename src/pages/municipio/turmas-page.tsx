@@ -173,7 +173,7 @@ export function MunicipioTurmasPage() {
         if (!validateForm() || !selectedTurma) return
         setIsLoading(true)
         try {
-            await updateTurma(selectedTurma.id, { ...formData, escolaId: Number(formData.escolaId) })
+            await updateTurma(selectedTurma.id, { ...formData, escolaId: Number(formData.escolaId), municipioId: Number(formData.municipioId) })
             refetchTurmas()
             setShowEditModal(false)
             resetForm()
