@@ -231,6 +231,7 @@ export function MunicipioAlunosPage() {
                 matricula: formData.matricula,
                 turmaId: Number(formData.turmaId),
                 escolaId: Number(formData.escolaId),
+                municipioId: formData.municipioId ? Number(formData.municipioId) : munId,
             })
             await refetchAlunos()
             setShowAddModal(false)
@@ -252,6 +253,7 @@ export function MunicipioAlunosPage() {
                 matricula: formData.matricula,
                 turmaId: Number(formData.turmaId),
                 escolaId: Number(formData.escolaId),
+                municipioId: formData.municipioId ? Number(formData.municipioId) : munId,
             })
             await refetchAlunos()
             setShowEditModal(false)
