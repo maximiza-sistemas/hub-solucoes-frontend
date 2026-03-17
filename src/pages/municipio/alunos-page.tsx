@@ -9,6 +9,18 @@ import { formatDateBR } from '@/lib/utils'
 import { AlunoImportModal } from '@/components/aluno-import-modal'
 import { downloadAlunoTemplate } from '@/lib/aluno-template'
 
+function parseDateToInput(dateStr: string): string {
+    if (!dateStr) return ''
+    // Try dd/MM/yyyy format first
+    const brParts = dateStr.split('/')
+    if (brParts.length === 3 && brParts[0].length <= 2) {
+        return `${brParts[2]}-${brParts[1]}-${brParts[0]}`
+    }
+    // Already yyyy-MM-dd
+    if (dateStr.includes('-')) return dateStr
+    return ''
+}
+
 export function MunicipioAlunosPage() {
     const { municipioId } = useParams()
     const navigate = useNavigate()
@@ -145,12 +157,9 @@ export function MunicipioAlunosPage() {
         })
     }
 
-    const getMunicipioNome = (mId: number) => municipios.find(m => m.id === mId)?.nome || '-'
-
     const validateForm = () => {
         const errors: Record<string, string> = {}
         if (!formData.nome || formData.nome.length < 3) errors.nome = 'Nome deve ter no mínimo 3 caracteres'
-        if (!formData.matricula) errors.matricula = 'Matrícula é obrigatória'
         if (!formData.escolaId) errors.escolaId = 'Escola é obrigatória'
         if (!formData.turmaId) errors.turmaId = 'Turma é obrigatória'
         setFormErrors(errors)
@@ -167,17 +176,36 @@ export function MunicipioAlunosPage() {
 
     const handleOpenEditModal = (aluno: Aluno) => {
         setSelectedAluno(aluno)
+        // Derive municipioId from municipio name or fallback to route param
+        const mun = municipios.find(m => m.nome === aluno.municipio)
+        const alunoMunicipioId = mun ? String(mun.id) : munId ? String(munId) : ''
         setFormData({
             nome: aluno.nome,
-            dataNascimento: aluno.dataNascimento || '',
+            dataNascimento: parseDateToInput(aluno.dataNascimento || ''),
             cpf: aluno.cpf || '',
             matricula: aluno.matricula,
             turmaId: aluno.turmaId ? String(aluno.turmaId) : '',
             escolaId: aluno.escolaId ? String(aluno.escolaId) : '',
-            municipioId: aluno.municipioId ? String(aluno.municipioId) : munId ? String(munId) : '',
+            municipioId: alunoMunicipioId,
         })
         setFormErrors({})
         setError(null)
+        // Pre-load escolas and turmas for the aluno's municipality
+        if (alunoMunicipioId) {
+            const token = useAuthStore.getState().accessToken
+            escolasApi.list(token, { municipioId: Number(alunoMunicipioId), size: 1000 })
+                .then(res => {
+                    const content = Array.isArray(res?.content) ? res.content : Array.isArray(res) ? res : []
+                    setFormEscolas(content)
+                })
+                .catch(console.error)
+            turmasApi.list(token, { municipioId: Number(alunoMunicipioId), size: 1000 })
+                .then(res => {
+                    const content = Array.isArray(res?.content) ? res.content : Array.isArray(res) ? res : []
+                    setFormTurmas(content)
+                })
+                .catch(console.error)
+        }
         setShowEditModal(true)
     }
 
@@ -203,7 +231,6 @@ export function MunicipioAlunosPage() {
                 matricula: formData.matricula,
                 turmaId: Number(formData.turmaId),
                 escolaId: Number(formData.escolaId),
-                municipioId: Number(formData.municipioId) || munId,
             })
             await refetchAlunos()
             setShowAddModal(false)
@@ -244,14 +271,6 @@ export function MunicipioAlunosPage() {
             setSelectedAluno(null)
         } catch (error) { console.error('Erro:', error) }
         finally { setIsLoading(false) }
-    }
-
-    // Get escola name by id
-    const getEscolaNome = (escolaId: number) => escolas.find(e => e.id === escolaId)?.nome || '-'
-    // Get turma info by id
-    const getTurmaInfo = (turmaId: number) => {
-        const turma = turmas.find(t => t.id === turmaId)
-        return turma ? `${turma.nome} - ${turma.serie}` : '-'
     }
 
     if (munId && !municipio) {
@@ -375,16 +394,16 @@ export function MunicipioAlunosPage() {
                         )}
                         <div className={`col-12 ${munId ? 'col-lg-2' : 'col-lg-3'}`}>
                             <label className="form-label text-muted small mb-1">Escola</label>
-                            <select className="form-select" value={escolaFilter} onChange={e => setEscolaFilter(e.target.value)}>
+                            <select className="form-select" value={escolaFilter} onChange={e => { setEscolaFilter(e.target.value); setTurmaFilter('') }}>
                                 <option value="">Todas</option>
                                 {(escolas || []).map(e => <option key={e.id} value={e.id}>{e.nome}</option>)}
                             </select>
                         </div>
                         <div className={`col-12 ${munId ? 'col-lg-2' : 'col-lg-3'}`}>
                             <label className="form-label text-muted small mb-1">Turma</label>
-                            <select className="form-select" value={turmaFilter} onChange={e => setTurmaFilter(e.target.value)}>
-                                <option value="">Todas</option>
-                                {(turmas || []).map(t => <option key={t.id} value={t.id}>{t.nome}</option>)}
+                            <select className="form-select" value={turmaFilter} onChange={e => setTurmaFilter(e.target.value)} disabled={!escolaFilter}>
+                                <option value="">{escolaFilter ? 'Todas' : 'Selecione uma escola'}</option>
+                                {(turmas || []).filter(t => escolaFilter ? String(t.escolaId) === escolaFilter : true).map(t => <option key={t.id} value={t.id}>{t.nome}</option>)}
                             </select>
                         </div>
                         <div className="col-12 mt-3">
@@ -412,8 +431,7 @@ export function MunicipioAlunosPage() {
                                         <th className="border-0">Aluno</th>
                                         <th className="border-0">CPF</th>
                                         <th className="border-0">Matrícula</th>
-                                        <th className="border-0">Escola</th>
-                                        <th className="border-0">Turma</th>
+                                        <th className="border-0">Turma / Série</th>
                                         <th className="border-0">Município</th>
                                         <th className="border-0 text-end">Ações</th>
                                     </tr>
@@ -435,10 +453,9 @@ export function MunicipioAlunosPage() {
                                             <td className="align-middle">
                                                 <code className="bg-light px-2 py-1 rounded">{aluno.matricula}</code>
                                             </td>
-                                            <td className="align-middle">{getEscolaNome(aluno.escolaId)}</td>
-                                            <td className="align-middle">{getTurmaInfo(aluno.turmaId)}</td>
+                                            <td className="align-middle">{aluno.turma ? `${aluno.turma} - ${aluno.serie}` : '-'}</td>
                                             <td className="align-middle">
-                                                <span className="text-muted">{aluno.municipio || getMunicipioNome(aluno.municipioId)}</span>
+                                                <span className="text-muted">{aluno.municipio || '-'}</span>
                                             </td>
                                             <td className="align-middle text-end">
                                                 <div className="btn-group btn-group-sm">

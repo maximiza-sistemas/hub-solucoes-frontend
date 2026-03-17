@@ -163,15 +163,15 @@ export function AlunoImportModal({ isOpen, onClose, onImportSuccess }: AlunoImpo
                             {state === 'result' && result && (
                                 <div>
                                     <div className="d-flex gap-3 mb-4">
-                                        <div className="flex-fill text-center p-3 rounded bg-light">
+                                        <div className="flex-fill text-center p-3 rounded bg-light border">
                                             <div className="fs-4 fw-bold text-primary">{result.totalLinhas}</div>
                                             <small className="text-muted">Total de Linhas</small>
                                         </div>
-                                        <div className="flex-fill text-center p-3 rounded bg-success bg-opacity-10">
+                                        <div className="flex-fill text-center p-3 rounded bg-light border border-success">
                                             <div className="fs-4 fw-bold text-success">{result.sucesso}</div>
                                             <small className="text-muted">Importados</small>
                                         </div>
-                                        <div className="flex-fill text-center p-3 rounded bg-danger bg-opacity-10">
+                                        <div className="flex-fill text-center p-3 rounded bg-light border border-danger">
                                             <div className="fs-4 fw-bold text-danger">{result.erros}</div>
                                             <small className="text-muted">Erros</small>
                                         </div>

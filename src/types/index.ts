@@ -62,9 +62,10 @@ export interface Aluno {
     dataNascimento: string
     cpf?: string
     matricula: string
+    turma?: string
+    serie?: string
     turmaId: number
     escolaId: number
-    municipioId: number
     municipio?: string
 }
 
