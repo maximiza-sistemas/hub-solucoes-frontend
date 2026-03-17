@@ -67,6 +67,7 @@ export interface Aluno {
     turmaId: number
     escolaId: number
     municipio?: string
+    municipioId?: number
 }
 
 // School Types
