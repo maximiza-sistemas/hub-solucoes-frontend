@@ -1,7 +1,7 @@
 import { useState, useEffect, type FormEvent } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useDataStore } from '@/stores'
-import { Pagination } from '@/components/ui'
+import { Pagination, PageLoading } from '@/components/ui'
 import { enumsApi, escolasApi } from '@/services/api'
 import { useAuthStore } from '@/stores/auth-store'
 import type { Turma, Escola } from '@/types'
@@ -41,6 +41,7 @@ export function MunicipioTurmasPage() {
     })
 
 
+    const [initialLoading, setInitialLoading] = useState(true)
     const [turnos, setTurnos] = useState<string[]>([])
     const [series, setSeries] = useState<string[]>([])
     const [isLoading, setIsLoading] = useState(false)
@@ -80,17 +81,14 @@ export function MunicipioTurmasPage() {
     const selectedEscolaName = formEscolas.find(e => String(e.id) === formData.escolaId)?.nome || ''
 
     useEffect(() => {
-        fetchMunicipios()
-        if (munId) fetchEscolas(munId)
-        else if (municipioFilter) fetchEscolas(Number(municipioFilter))
-        else fetchEscolas()
+        const escolasPromise = munId ? fetchEscolas(munId) : municipioFilter ? fetchEscolas(Number(municipioFilter)) : fetchEscolas()
 
         const token = useAuthStore.getState().accessToken
-        if (token) {
-            enumsApi.turnos(token).then(res => setTurnos(Array.isArray(res?.content) ? res.content : Array.isArray(res) ? res : [])).catch(console.error)
-            enumsApi.series(token).then(res => setSeries(Array.isArray(res?.content) ? res.content : Array.isArray(res) ? res : [])).catch(console.error)
-        }
-    }, [munId, municipioFilter])
+        const turnosPromise = token ? enumsApi.turnos(token).then(res => setTurnos(Array.isArray(res?.content) ? res.content : Array.isArray(res) ? res : [])).catch(console.error) : Promise.resolve()
+        const seriesPromise = token ? enumsApi.series(token).then(res => setSeries(Array.isArray(res?.content) ? res.content : Array.isArray(res) ? res : [])).catch(console.error) : Promise.resolve()
+
+        Promise.all([fetchMunicipios(), escolasPromise, turnosPromise, seriesPromise, refetchTurmas()]).finally(() => setInitialLoading(false))
+    }, [])
 
     const refetchTurmas = (page = currentPage) => {
         fetchTurmas({
@@ -105,7 +103,7 @@ export function MunicipioTurmasPage() {
     }
 
     useEffect(() => {
-        refetchTurmas()
+        if (!initialLoading) refetchTurmas()
     }, [munId, currentPage, pageSize, appliedFilters])
 
     const handleApplyFilters = () => {
@@ -180,6 +178,8 @@ export function MunicipioTurmasPage() {
         } catch (error) { console.error(error) }
         finally { setIsLoading(false) }
     }
+
+    if (initialLoading) return <PageLoading />
 
     return (
         <div className="animate-fadeIn">

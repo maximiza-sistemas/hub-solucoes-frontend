@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useDataStore } from '@/stores'
-import { Pagination } from '@/components/ui'
+import { Pagination, PageLoading } from '@/components/ui'
 import type { Usuario } from '@/types'
 
 export function MunicipioUsuariosPage() {
@@ -36,6 +36,8 @@ export function MunicipioUsuariosPage() {
     const [selectedUsuario, setSelectedUsuario] = useState<Usuario | null>(null)
     const [isLoading, setIsLoading] = useState(false)
 
+    const [initialLoading, setInitialLoading] = useState(true)
+
     const [formData, setFormData] = useState({
         nome: '',
         email: '',
@@ -45,9 +47,12 @@ export function MunicipioUsuariosPage() {
     const [formErrors, setFormErrors] = useState<Record<string, string>>({})
 
     useEffect(() => {
-        fetchMunicipios()
-        fetchRoles()
-    }, [fetchMunicipios, fetchRoles])
+        Promise.all([
+            fetchMunicipios(),
+            fetchRoles(),
+            fetchUsuarios({ municipioId: munId, page: 0, size: pageSize }),
+        ]).finally(() => setInitialLoading(false))
+    }, [])
 
     const municipio = municipios.find((m) => m.id === munId)
     const usuariosPagination = pagination.usuarios || { page: 0, size: pageSize, totalElements: 0, totalPages: 0 }
@@ -80,7 +85,7 @@ export function MunicipioUsuariosPage() {
     }
 
     useEffect(() => {
-        refetchUsuarios()
+        if (!initialLoading) refetchUsuarios()
     }, [munId, currentPage, debouncedNome, debouncedEmail, ativoFilter, pageSize])
 
     const tipoUsuarioBadge = (tipo: string) => {
@@ -163,6 +168,8 @@ export function MunicipioUsuariosPage() {
         } catch (error) { console.error('Erro:', error) }
         finally { setIsLoading(false) }
     }
+
+    if (initialLoading) return <PageLoading />
 
     if (!municipio) {
         return (

@@ -42,6 +42,8 @@ export interface Municipio {
     totalSolucoes: number
     totalEscolas: number
     totalTurmas: number
+    imageMunicipioUrl: string | null
+    imageEducacaoUrl: string | null
 }
 
 // Solution Types

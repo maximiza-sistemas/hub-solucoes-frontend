@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useDataStore } from '@/stores'
-import { Pagination } from '@/components/ui'
+import { Pagination, PageLoading } from '@/components/ui'
 import { escolasApi, turmasApi } from '@/services/api'
 import { useAuthStore } from '@/stores/auth-store'
 import type { Aluno, Escola, Turma } from '@/types'
@@ -75,6 +75,7 @@ export function MunicipioAlunosPage() {
         escolaId: '',
         municipioId: munId ? String(munId) : '',
     })
+    const [initialLoading, setInitialLoading] = useState(true)
     const [formErrors, setFormErrors] = useState<Record<string, string>>({})
     const [formEscolas, setFormEscolas] = useState<Escola[]>([])
     const [formTurmas, setFormTurmas] = useState<Turma[]>([])
@@ -102,10 +103,13 @@ export function MunicipioAlunosPage() {
     }, [formData.municipioId, munId])
 
     useEffect(() => {
-        fetchMunicipios()
-        fetchEscolas(munId)
-        fetchTurmas(munId)
-    }, [munId, fetchMunicipios, fetchEscolas, fetchTurmas])
+        Promise.all([
+            fetchMunicipios(),
+            fetchEscolas(munId),
+            fetchTurmas(munId),
+            fetchAlunos({ municipioId: munId, page: 0, size: pageSize }),
+        ]).finally(() => setInitialLoading(false))
+    }, [])
 
     const municipio = munId ? municipios.find((m) => m.id === munId) : undefined
     const alunosPagination = pagination.alunos || { page: 0, size: pageSize, totalElements: 0, totalPages: 0 }
@@ -123,7 +127,7 @@ export function MunicipioAlunosPage() {
         })
 
     useEffect(() => {
-        refetchAlunos()
+        if (!initialLoading) refetchAlunos()
     }, [munId, currentPage, pageSize, appliedFilters])
 
     const handleApplyFilters = () => {
@@ -274,6 +278,8 @@ export function MunicipioAlunosPage() {
         } catch (error) { console.error('Erro:', error) }
         finally { setIsLoading(false) }
     }
+
+    if (initialLoading) return <PageLoading />
 
     if (munId && !municipio) {
         return (

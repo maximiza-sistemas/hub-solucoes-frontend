@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useAuthStore, useDataStore } from '@/stores'
-import { Pagination } from '@/components/ui'
+import { Pagination, PageLoading } from '@/components/ui'
 import { solucoesApi } from '@/services/api'
 import type { Solucao, PageResponse } from '@/types'
 
@@ -21,6 +21,8 @@ export function SolucoesPage() {
     const [showDeleteModal, setShowDeleteModal] = useState(false)
     const [selectedSolucao, setSelectedSolucao] = useState<Solucao | null>(null)
     const [isLoading, setIsLoading] = useState(false)
+
+    const [initialLoading, setInitialLoading] = useState(true)
 
     const [formData, setFormData] = useState({
         nome: '',
@@ -50,8 +52,8 @@ export function SolucoesPage() {
     }
 
     useEffect(() => {
-        fetchMunicipios()
-    }, [fetchMunicipios])
+        Promise.all([fetchMunicipios(), loadSolucoes(0)]).finally(() => setInitialLoading(false))
+    }, [])
 
     useEffect(() => {
         const timer = setTimeout(() => setDebouncedSearch(searchTerm), 400)
@@ -63,7 +65,7 @@ export function SolucoesPage() {
     }, [debouncedSearch, pageSize, ativoFilter, municipioFilter])
 
     useEffect(() => {
-        loadSolucoes(currentPage)
+        if (!initialLoading) loadSolucoes(currentPage)
     }, [accessToken, currentPage, debouncedSearch, pageSize, ativoFilter, municipioFilter])
 
     const handleOpenModal = () => {
@@ -186,6 +188,8 @@ export function SolucoesPage() {
 
     const totalSolucoes = pagination?.totalElements || 0
     const solucoesAtivas = solucoes.filter(s => s.ativo).length
+
+    if (initialLoading) return <PageLoading />
 
     return (
         <div className="animate-fadeIn">

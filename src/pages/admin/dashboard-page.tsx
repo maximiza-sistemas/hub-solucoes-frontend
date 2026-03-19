@@ -1,6 +1,7 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useDataStore, useAuthStore } from '@/stores'
 import { useNavigate } from 'react-router-dom'
+import { PageLoading } from '@/components/ui'
 
 export function DashboardPage() {
     const {
@@ -12,12 +13,14 @@ export function DashboardPage() {
     const { user } = useAuthStore()
     const isSuperAdmin = user?.role === 'SUPERADMIN'
     const navigate = useNavigate()
+    const [initialLoading, setInitialLoading] = useState(true)
 
     // Fetch data on mount
     useEffect(() => {
-        fetchMunicipios()
-        fetchSolucoes()
+        Promise.all([fetchMunicipios(), fetchSolucoes()]).finally(() => setInitialLoading(false))
     }, [fetchMunicipios, fetchSolucoes])
+
+    if (initialLoading) return <PageLoading />
 
     const totalAlunos = municipios.reduce((acc, m) => acc + (m.totalAlunos || 0), 0)
     const totalUsuarios = municipios.reduce((acc, m) => acc + (m.totalUsuarios || 0), 0)

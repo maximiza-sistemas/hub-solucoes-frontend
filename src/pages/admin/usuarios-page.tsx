@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useDataStore, useAuthStore } from '@/stores'
-import { Pagination } from '@/components/ui'
+import { Pagination, PageLoading } from '@/components/ui'
 import { usuariosApi } from '@/services/api'
 import type { Usuario, Role } from '@/types'
 
@@ -49,6 +49,8 @@ export function UsuariosPage() {
     const [rolePage, setRolePage] = useState(0)
     const [rolePageSize, setRolePageSize] = useState(10)
 
+    const [initialLoading, setInitialLoading] = useState(true)
+
     const [formData, setFormData] = useState({
         nome: '',
         email: '',
@@ -59,8 +61,8 @@ export function UsuariosPage() {
     const [formErrors, setFormErrors] = useState<Record<string, string>>({})
 
     useEffect(() => {
-        fetchMunicipios()
-    }, [fetchMunicipios])
+        Promise.all([fetchMunicipios(), fetchRoles(), fetchUsuarios({ page: 0, size: pageSize })]).finally(() => setInitialLoading(false))
+    }, [])
 
     useEffect(() => {
         const timer = setTimeout(() => {
@@ -98,7 +100,7 @@ export function UsuariosPage() {
     }
 
     useEffect(() => {
-        refetchUsuarios()
+        if (!initialLoading) refetchUsuarios()
     }, [currentPage, debouncedNome, debouncedEmail, ativoFilter, municipioFilter, pageSize])
 
     const rolesPagination = pagination.roles || { page: 0, size: rolePageSize, totalElements: 0, totalPages: 0 }
@@ -116,7 +118,7 @@ export function UsuariosPage() {
     }, [debouncedRoleSearch, rolePageSize])
 
     useEffect(() => {
-        refetchRoles(rolePage, rolePageSize, debouncedRoleSearch)
+        if (!initialLoading) refetchRoles(rolePage, rolePageSize, debouncedRoleSearch)
     }, [rolePage, debouncedRoleSearch, rolePageSize])
 
     const getMunicipioNome = (municipioId?: number) => {
@@ -306,12 +308,14 @@ export function UsuariosPage() {
     const totalUsuarios = usuariosPagination.totalElements
     const usuariosAtivos = usuarios.filter(u => u.ativo).length
 
+    if (initialLoading) return <PageLoading />
+
     return (
         <div className="animate-fadeIn">
             <div className="d-flex justify-content-between align-items-center mb-3">
                 <div>
-                    <h1 className="h3 fw-bold text-dark mb-1">{activeTab === 'usuarios' ? 'Usuários' : 'Papéis'}</h1>
-                    <p className="text-muted mb-0">{activeTab === 'usuarios' ? 'Gerencie os usuários do sistema' : 'Gerencie os papéis e permissões'}</p>
+                    <h1 className="h3 fw-bold text-dark mb-1">{activeTab === 'usuarios' ? 'Usuários' : 'Perfis'}</h1>
+                    <p className="text-muted mb-0">{activeTab === 'usuarios' ? 'Gerencie os usuários do sistema' : 'Gerencie os perfis e permissões'}</p>
                 </div>
                 {activeTab === 'usuarios' ? (
                     <button className="btn btn-primary d-flex align-items-center gap-2" onClick={handleOpenModal}>
@@ -319,7 +323,7 @@ export function UsuariosPage() {
                     </button>
                 ) : (
                     <button className="btn btn-primary d-flex align-items-center gap-2" onClick={handleOpenRoleModal}>
-                        <i className="bi bi-plus-lg"></i>Novo Papel
+                        <i className="bi bi-plus-lg"></i>Novo Perfil
                     </button>
                 )}
             </div>
@@ -329,7 +333,7 @@ export function UsuariosPage() {
                     <button className={`nav-link ${activeTab === 'usuarios' ? 'active' : ''}`} onClick={() => setActiveTab('usuarios')}>Usuários</button>
                 </li>
                 <li className="nav-item">
-                    <button className={`nav-link ${activeTab === 'papeis' ? 'active' : ''}`} onClick={() => setActiveTab('papeis')}>Papéis</button>
+                    <button className={`nav-link ${activeTab === 'papeis' ? 'active' : ''}`} onClick={() => setActiveTab('papeis')}>Perfis</button>
                 </li>
             </ul>
 
@@ -730,7 +734,7 @@ export function UsuariosPage() {
                                                         <button
                                                             className="btn btn-outline-primary"
                                                             onClick={() => handleOpenRoleEdit(role)}
-                                                            title="Editar Papel"
+                                                            title="Editar Perfil"
                                                         >
                                                             <i className="bi bi-pencil"></i>
                                                         </button>
@@ -757,7 +761,7 @@ export function UsuariosPage() {
                                 totalPages={rolesPagination.totalPages}
                                 onPageChange={setRolePage}
                                 onPageSizeChange={setRolePageSize}
-                                label="papéis"
+                                label="perfis"
                                 isLoading={isRoleLoading}
                             />
                         </div>
@@ -776,7 +780,7 @@ export function UsuariosPage() {
                                 <div className="modal-dialog modal-dialog-centered">
                                     <div className="modal-content border-0 shadow">
                                         <div className="modal-header bg-primary text-white">
-                                            <h5 className="modal-title"><i className="bi bi-shield-lock me-2"></i>{selectedRole ? 'Editar Papel' : 'Novo Papel'}</h5>
+                                            <h5 className="modal-title"><i className="bi bi-shield-lock me-2"></i>{selectedRole ? 'Editar Perfil' : 'Novo Perfil'}</h5>
                                             <button type="button" className="btn-close btn-close-white" onClick={() => { setShowRoleModal(false); setSelectedRole(null) }}></button>
                                         </div>
                                         <form onSubmit={handleRoleSubmit}>

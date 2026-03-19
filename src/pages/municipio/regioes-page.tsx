@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useDataStore } from '@/stores'
-import { Pagination } from '@/components/ui'
+import { Pagination, PageLoading } from '@/components/ui'
 import type { Regiao } from '@/types'
 
 export function MunicipioRegioesPage() {
@@ -21,9 +21,10 @@ export function MunicipioRegioesPage() {
     })
 
     useEffect(() => {
-        fetchMunicipios()
-    }, [fetchMunicipios])
+        Promise.all([fetchMunicipios(), refetchRegioes()]).finally(() => setInitialLoading(false))
+    }, [])
 
+    const [initialLoading, setInitialLoading] = useState(true)
     const [showAddModal, setShowAddModal] = useState(false)
     const [showEditModal, setShowEditModal] = useState(false)
     const [showDeleteModal, setShowDeleteModal] = useState(false)
@@ -44,7 +45,7 @@ export function MunicipioRegioesPage() {
         })
 
     useEffect(() => {
-        refetchRegioes()
+        if (!initialLoading) refetchRegioes()
     }, [munId, currentPage, pageSize, appliedFilters])
 
     const handleApplyFilters = () => {
@@ -105,6 +106,8 @@ export function MunicipioRegioesPage() {
         } catch (error) { console.error('Erro:', error) }
         finally { setIsLoading(false) }
     }
+
+    if (initialLoading) return <PageLoading />
 
     if (munId && !municipio) {
         return <div className="d-flex align-items-center justify-content-center" style={{ height: '50vh' }}><div className="text-center"><i className="bi bi-exclamation-triangle text-warning" style={{ fontSize: 48 }}></i><p className="text-muted mt-3">Município não encontrado</p></div></div>

@@ -1,6 +1,7 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useDataStore } from '@/stores'
+import { PageLoading } from '@/components/ui'
 
 export function MunicipioDashboardPage() {
     const { municipioId } = useParams()
@@ -17,13 +18,18 @@ export function MunicipioDashboardPage() {
     } = useDataStore()
 
     const munId = Number(municipioId)
+    const [initialLoading, setInitialLoading] = useState(true)
 
     useEffect(() => {
-        fetchMunicipios()
-        fetchSolucoes(munId)
-        fetchAlunos(munId)
-        fetchEscolas(munId)
+        Promise.all([
+            fetchMunicipios(),
+            fetchSolucoes(munId),
+            fetchAlunos(munId),
+            fetchEscolas(munId),
+        ]).finally(() => setInitialLoading(false))
     }, [munId, fetchMunicipios, fetchSolucoes, fetchAlunos, fetchEscolas])
+
+    if (initialLoading) return <PageLoading />
 
     const municipio = municipios.find((m) => m.id === munId)
     const municipioAlunos = alunos

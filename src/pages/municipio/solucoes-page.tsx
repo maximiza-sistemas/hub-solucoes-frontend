@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useDataStore, useAuthStore } from '@/stores'
-import { Pagination } from '@/components/ui'
+import { Pagination, PageLoading } from '@/components/ui'
 import { solucoesApi } from '@/services/api'
 import type { Solucao, PageResponse } from '@/types'
 
@@ -25,6 +25,8 @@ export function MunicipioSolucoesPage() {
     const [pageSize, setPageSize] = useState(10)
     const [ativoFilter, setAtivoFilter] = useState('')
 
+    const [initialLoading, setInitialLoading] = useState(true)
+
     const [formData, setFormData] = useState({ nome: '', descricao: '', link: '' })
     const [formErrors, setFormErrors] = useState<Record<string, string>>({})
 
@@ -47,8 +49,8 @@ export function MunicipioSolucoesPage() {
     }
 
     useEffect(() => {
-        fetchMunicipios()
-    }, [fetchMunicipios])
+        Promise.all([fetchMunicipios(), loadSolucoes(0)]).finally(() => setInitialLoading(false))
+    }, [])
 
     useEffect(() => {
         const timer = setTimeout(() => setDebouncedSearch(searchTerm), 400)
@@ -60,7 +62,7 @@ export function MunicipioSolucoesPage() {
     }, [debouncedSearch, munId, pageSize, ativoFilter])
 
     useEffect(() => {
-        loadSolucoes(currentPage, { nome: debouncedSearch })
+        if (!initialLoading) loadSolucoes(currentPage, { nome: debouncedSearch })
     }, [accessToken, munId, currentPage, debouncedSearch, pageSize, ativoFilter])
 
     const municipio = municipios.find((m) => m.id === munId)
@@ -116,6 +118,8 @@ export function MunicipioSolucoesPage() {
         } catch (error) { console.error('Erro:', error) }
         finally { setIsLoading(false) }
     }
+
+    if (initialLoading) return <PageLoading />
 
     if (!municipio) {
         return <div className="d-flex align-items-center justify-content-center" style={{ height: '50vh' }}><div className="text-center"><i className="bi bi-exclamation-triangle text-warning" style={{ fontSize: 48 }}></i><p className="text-muted mt-3">Município não encontrado</p></div></div>

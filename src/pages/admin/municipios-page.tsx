@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useDataStore } from '@/stores'
+import { PageLoading } from '@/components/ui'
 
 export function MunicipiosPage() {
     const {
@@ -12,11 +13,7 @@ export function MunicipiosPage() {
         inativarMunicipio,
     } = useDataStore()
     const navigate = useNavigate()
-
-    // Fetch data on mount
-    useEffect(() => {
-        fetchMunicipios()
-    }, [fetchMunicipios])
+    const [initialLoading, setInitialLoading] = useState(true)
     const [searchTerm, setSearchTerm] = useState('')
     const [statusFilter, setStatusFilter] = useState<string>('todos')
 
@@ -37,6 +34,24 @@ export function MunicipiosPage() {
         slug: '',
     })
 
+    // Fetch data on mount
+    useEffect(() => {
+        fetchMunicipios().finally(() => setInitialLoading(false))
+    }, [fetchMunicipios])
+
+    // Close dropdown when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+                setOpenDropdownId(null)
+            }
+        }
+        document.addEventListener('mousedown', handleClickOutside)
+        return () => document.removeEventListener('mousedown', handleClickOutside)
+    }, [])
+
+    if (initialLoading) return <PageLoading />
+
     const estados = [
         { value: 'AC', label: 'Acre' }, { value: 'AL', label: 'Alagoas' },
         { value: 'AP', label: 'Amapá' }, { value: 'AM', label: 'Amazonas' },
@@ -53,17 +68,6 @@ export function MunicipiosPage() {
         { value: 'SP', label: 'São Paulo' }, { value: 'SE', label: 'Sergipe' },
         { value: 'TO', label: 'Tocantins' },
     ]
-
-    // Close dropdown when clicking outside
-    useEffect(() => {
-        const handleClickOutside = (event: MouseEvent) => {
-            if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-                setOpenDropdownId(null)
-            }
-        }
-        document.addEventListener('mousedown', handleClickOutside)
-        return () => document.removeEventListener('mousedown', handleClickOutside)
-    }, [])
 
     const filteredMunicipios = municipios.filter((m) => {
         const matchesSearch = m.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useDataStore } from '@/stores'
-import { Pagination } from '@/components/ui'
+import { Pagination, PageLoading } from '@/components/ui'
 import type { Escola } from '@/types'
 
 export function MunicipioEscolasPage() {
@@ -28,8 +28,8 @@ export function MunicipioEscolasPage() {
     const [debouncedSearch, setDebouncedSearch] = useState('')
 
     useEffect(() => {
-        fetchMunicipios()
-    }, [fetchMunicipios])
+        Promise.all([fetchMunicipios(), refetchEscolas()]).finally(() => setInitialLoading(false))
+    }, [])
 
     const [showAddModal, setShowAddModal] = useState(false)
     const [showEditModal, setShowEditModal] = useState(false)
@@ -40,6 +40,8 @@ export function MunicipioEscolasPage() {
     const [grupoFilter, setGrupoFilter] = useState('')
     const [regiaoFilter, setRegiaoFilter] = useState('')
     const [municipioFilter, setMunicipioFilter] = useState('')
+
+    const [initialLoading, setInitialLoading] = useState(true)
 
     const [formData, setFormData] = useState({ nome: '', grupoId: '', regiaoId: '', municipioId: munId ? String(munId) : '' })
     const [formErrors, setFormErrors] = useState<Record<string, string>>({})
@@ -78,7 +80,7 @@ export function MunicipioEscolasPage() {
     }
 
     useEffect(() => {
-        refetchEscolas()
+        if (!initialLoading) refetchEscolas()
     }, [munId, currentPage, pageSize, debouncedSearch])
 
     const municipio = munId ? municipios.find((m) => m.id === munId) : undefined
@@ -158,6 +160,8 @@ export function MunicipioEscolasPage() {
         } catch (error) { console.error('Erro:', error) }
         finally { setIsLoading(false) }
     }
+
+    if (initialLoading) return <PageLoading />
 
     if (munId && !municipio) {
         return (
