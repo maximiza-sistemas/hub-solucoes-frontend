@@ -54,6 +54,10 @@ interface DataState {
     deleteMunicipio: (id: number) => Promise<void>
     ativarMunicipio: (id: number) => Promise<void>
     inativarMunicipio: (id: number) => Promise<void>
+    uploadImageMunicipio: (id: number, file: File) => Promise<Municipio>
+    uploadImageEducacao: (id: number, file: File) => Promise<Municipio>
+    deleteImageMunicipio: (id: number) => Promise<void>
+    deleteImageEducacao: (id: number) => Promise<void>
 
     // Soluções CRUD
     addSolucao: (data: Partial<Solucao>) => Promise<Solucao>
@@ -363,6 +367,40 @@ export const useDataStore = create<DataState>((set, get) => ({
         await municipiosApi.inativar(id, token)
         set((state) => ({
             municipios: state.municipios.map((m) => (m.id === id ? { ...m, ativo: false } : m)),
+        }))
+    },
+
+    uploadImageMunicipio: async (id, file) => {
+        const token = useAuthStore.getState().accessToken
+        const updated = await municipiosApi.uploadImageMunicipio(id, file, token)
+        set((state) => ({
+            municipios: state.municipios.map((m) => (m.id === id ? updated : m)),
+        }))
+        return updated
+    },
+
+    uploadImageEducacao: async (id, file) => {
+        const token = useAuthStore.getState().accessToken
+        const updated = await municipiosApi.uploadImageEducacao(id, file, token)
+        set((state) => ({
+            municipios: state.municipios.map((m) => (m.id === id ? updated : m)),
+        }))
+        return updated
+    },
+
+    deleteImageMunicipio: async (id) => {
+        const token = useAuthStore.getState().accessToken
+        await municipiosApi.deleteImageMunicipio(id, token)
+        set((state) => ({
+            municipios: state.municipios.map((m) => (m.id === id ? { ...m, imageMunicipioUrl: null } : m)),
+        }))
+    },
+
+    deleteImageEducacao: async (id) => {
+        const token = useAuthStore.getState().accessToken
+        await municipiosApi.deleteImageEducacao(id, token)
+        set((state) => ({
+            municipios: state.municipios.map((m) => (m.id === id ? { ...m, imageEducacaoUrl: null } : m)),
         }))
     },
 

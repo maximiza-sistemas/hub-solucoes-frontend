@@ -11,6 +11,10 @@ export function MunicipiosPage() {
         deleteMunicipio,
         ativarMunicipio,
         inativarMunicipio,
+        uploadImageMunicipio,
+        uploadImageEducacao,
+        deleteImageMunicipio,
+        deleteImageEducacao,
     } = useDataStore()
     const navigate = useNavigate()
     const [initialLoading, setInitialLoading] = useState(true)
@@ -33,6 +37,12 @@ export function MunicipiosPage() {
         uf: '',
         slug: '',
     })
+
+    // Image upload state
+    const [uploadingImage, setUploadingImage] = useState<'municipio' | 'educacao' | null>(null)
+    const [imageError, setImageError] = useState<string | null>(null)
+    const fileMunicipioRef = useRef<HTMLInputElement>(null)
+    const fileEducacaoRef = useRef<HTMLInputElement>(null)
 
     // Fetch data on mount
     useEffect(() => {
@@ -117,6 +127,50 @@ export function MunicipiosPage() {
             }
         } catch (error) {
             console.error('Erro ao alterar status:', error)
+        }
+    }
+
+    const handleModalImageUpload = async (file: File, type: 'municipio' | 'educacao') => {
+        if (!selectedMunicipio) return
+        const ACCEPTED_TYPES = ['image/png', 'image/jpeg', 'image/webp']
+        if (!ACCEPTED_TYPES.includes(file.type)) {
+            setImageError('Formato inválido. Use PNG, JPEG ou WebP.')
+            return
+        }
+        if (file.size > 5 * 1024 * 1024) {
+            setImageError('Arquivo muito grande. Máximo 5MB.')
+            return
+        }
+        setImageError(null)
+        setUploadingImage(type)
+        try {
+            const updated = type === 'municipio'
+                ? await uploadImageMunicipio(selectedMunicipio.id, file)
+                : await uploadImageEducacao(selectedMunicipio.id, file)
+            setSelectedMunicipio(updated)
+        } catch (error) {
+            setImageError((error as Error).message || 'Erro ao enviar imagem.')
+        } finally {
+            setUploadingImage(null)
+        }
+    }
+
+    const handleModalImageDelete = async (type: 'municipio' | 'educacao') => {
+        if (!selectedMunicipio) return
+        setImageError(null)
+        setUploadingImage(type)
+        try {
+            if (type === 'municipio') {
+                await deleteImageMunicipio(selectedMunicipio.id)
+                setSelectedMunicipio({ ...selectedMunicipio, imageMunicipioUrl: null })
+            } else {
+                await deleteImageEducacao(selectedMunicipio.id)
+                setSelectedMunicipio({ ...selectedMunicipio, imageEducacaoUrl: null })
+            }
+        } catch (error) {
+            setImageError((error as Error).message || 'Erro ao remover imagem.')
+        } finally {
+            setUploadingImage(null)
         }
     }
 
@@ -283,10 +337,19 @@ export function MunicipiosPage() {
                                 <div className="card-body">
                                     <div className="d-flex justify-content-between align-items-start mb-3">
                                         <div className="d-flex align-items-center gap-3">
-                                            <div className="d-flex align-items-center justify-content-center rounded-3 bg-primary bg-opacity-10"
-                                                style={{ width: 56, height: 56 }}>
-                                                <i className="bi bi-building text-primary" style={{ fontSize: 24 }}></i>
-                                            </div>
+                                            {municipio.imageMunicipioUrl ? (
+                                                <img
+                                                    src={municipio.imageMunicipioUrl}
+                                                    alt={municipio.nome}
+                                                    className="rounded-3"
+                                                    style={{ width: 56, height: 56, objectFit: 'contain' }}
+                                                />
+                                            ) : (
+                                                <div className="d-flex align-items-center justify-content-center rounded-3 bg-primary bg-opacity-10"
+                                                    style={{ width: 56, height: 56 }}>
+                                                    <i className="bi bi-building text-primary" style={{ fontSize: 24 }}></i>
+                                                </div>
+                                            )}
                                             <div>
                                                 <h5 className="fw-bold mb-0">{municipio.nome}</h5>
                                                 <span className="text-muted">{municipio.uf}</span>
@@ -422,6 +485,116 @@ export function MunicipiosPage() {
                                                 value={editForm.slug}
                                                 onChange={(e) => setEditForm({ ...editForm, slug: e.target.value })}
                                             />
+                                        </div>
+
+                                        {/* Image Upload Section */}
+                                        <div className="col-12">
+                                            <hr className="my-2" />
+                                            <label className="form-label fw-medium">
+                                                <i className="bi bi-image me-1"></i>Imagens
+                                            </label>
+                                            {imageError && (
+                                                <div className="alert alert-danger alert-dismissible fade show py-2" role="alert">
+                                                    <small><i className="bi bi-exclamation-triangle me-1"></i>{imageError}</small>
+                                                    <button type="button" className="btn-close btn-close-sm" style={{ padding: '0.5rem' }} onClick={() => setImageError(null)}></button>
+                                                </div>
+                                            )}
+                                            <div className="row g-3">
+                                                <div className="col-6">
+                                                    <small className="text-muted d-block mb-1">Imagem do Município</small>
+                                                    <input
+                                                        ref={fileMunicipioRef}
+                                                        type="file"
+                                                        className="d-none"
+                                                        accept=".png,.jpg,.jpeg,.webp"
+                                                        onChange={(e) => {
+                                                            const file = e.target.files?.[0]
+                                                            if (file) handleModalImageUpload(file, 'municipio')
+                                                            e.target.value = ''
+                                                        }}
+                                                    />
+                                                    {selectedMunicipio.imageMunicipioUrl ? (
+                                                        <div className="border rounded-3 p-2 text-center">
+                                                            <img
+                                                                src={selectedMunicipio.imageMunicipioUrl}
+                                                                alt="Imagem do Município"
+                                                                className="img-fluid rounded mb-2"
+                                                                style={{ maxHeight: 120, objectFit: 'cover' }}
+                                                            />
+                                                            <div className="d-flex gap-1 justify-content-center">
+                                                                <button type="button" className="btn btn-sm btn-outline-primary" disabled={uploadingImage === 'municipio'} onClick={() => fileMunicipioRef.current?.click()}>
+                                                                    {uploadingImage === 'municipio' ? <span className="spinner-border spinner-border-sm"></span> : <><i className="bi bi-arrow-repeat me-1"></i>Trocar</>}
+                                                                </button>
+                                                                <button type="button" className="btn btn-sm btn-outline-danger" disabled={uploadingImage === 'municipio'} onClick={() => handleModalImageDelete('municipio')}>
+                                                                    <i className="bi bi-trash"></i>
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    ) : (
+                                                        <div
+                                                            className="border rounded-3 p-3 text-center text-muted"
+                                                            style={{ cursor: uploadingImage === 'municipio' ? 'wait' : 'pointer', borderStyle: 'dashed' }}
+                                                            onClick={() => !uploadingImage && fileMunicipioRef.current?.click()}
+                                                        >
+                                                            {uploadingImage === 'municipio' ? (
+                                                                <span className="spinner-border spinner-border-sm"></span>
+                                                            ) : (
+                                                                <>
+                                                                    <i className="bi bi-cloud-arrow-up d-block mb-1" style={{ fontSize: 24 }}></i>
+                                                                    <small>Clique para enviar</small>
+                                                                </>
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                <div className="col-6">
+                                                    <small className="text-muted d-block mb-1">Imagem da Educação</small>
+                                                    <input
+                                                        ref={fileEducacaoRef}
+                                                        type="file"
+                                                        className="d-none"
+                                                        accept=".png,.jpg,.jpeg,.webp"
+                                                        onChange={(e) => {
+                                                            const file = e.target.files?.[0]
+                                                            if (file) handleModalImageUpload(file, 'educacao')
+                                                            e.target.value = ''
+                                                        }}
+                                                    />
+                                                    {selectedMunicipio.imageEducacaoUrl ? (
+                                                        <div className="border rounded-3 p-2 text-center">
+                                                            <img
+                                                                src={selectedMunicipio.imageEducacaoUrl}
+                                                                alt="Imagem da Educação"
+                                                                className="img-fluid rounded mb-2"
+                                                                style={{ maxHeight: 120, objectFit: 'cover' }}
+                                                            />
+                                                            <div className="d-flex gap-1 justify-content-center">
+                                                                <button type="button" className="btn btn-sm btn-outline-primary" disabled={uploadingImage === 'educacao'} onClick={() => fileEducacaoRef.current?.click()}>
+                                                                    {uploadingImage === 'educacao' ? <span className="spinner-border spinner-border-sm"></span> : <><i className="bi bi-arrow-repeat me-1"></i>Trocar</>}
+                                                                </button>
+                                                                <button type="button" className="btn btn-sm btn-outline-danger" disabled={uploadingImage === 'educacao'} onClick={() => handleModalImageDelete('educacao')}>
+                                                                    <i className="bi bi-trash"></i>
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    ) : (
+                                                        <div
+                                                            className="border rounded-3 p-3 text-center text-muted"
+                                                            style={{ cursor: uploadingImage === 'educacao' ? 'wait' : 'pointer', borderStyle: 'dashed' }}
+                                                            onClick={() => !uploadingImage && fileEducacaoRef.current?.click()}
+                                                        >
+                                                            {uploadingImage === 'educacao' ? (
+                                                                <span className="spinner-border spinner-border-sm"></span>
+                                                            ) : (
+                                                                <>
+                                                                    <i className="bi bi-cloud-arrow-up d-block mb-1" style={{ fontSize: 24 }}></i>
+                                                                    <small>Clique para enviar</small>
+                                                                </>
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>

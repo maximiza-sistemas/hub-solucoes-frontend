@@ -122,7 +122,7 @@ async function request<T>(endpoint: string, options: RequestOptions = {}): Promi
     return response.json()
 }
 
-async function uploadFile<T>(endpoint: string, file: File, fieldName: string, token?: string | null): Promise<T> {
+async function uploadFile<T>(endpoint: string, file: File, fieldName: string, token?: string | null, method: 'POST' | 'PUT' = 'POST'): Promise<T> {
     const formData = new FormData()
     formData.append(fieldName, file)
 
@@ -132,7 +132,7 @@ async function uploadFile<T>(endpoint: string, file: File, fieldName: string, to
     }
 
     const url = `${API_BASE_URL}${endpoint}`
-    const response = await fetch(url, { method: 'POST', headers, body: formData })
+    const response = await fetch(url, { method, headers, body: formData })
 
     if ((response.status === 401 || response.status === 403) && token) {
         const { useAuthStore } = await import('@/stores/auth-store')
@@ -149,7 +149,7 @@ async function uploadFile<T>(endpoint: string, file: File, fieldName: string, to
                 refreshPromise = null
 
                 headers['Authorization'] = `Bearer ${tokens.accessToken}`
-                const retryResponse = await fetch(url, { method: 'POST', headers, body: formData })
+                const retryResponse = await fetch(url, { method, headers, body: formData })
                 if (!retryResponse.ok) {
                     const error = await retryResponse.json().catch(() => ({ error: 'Erro desconhecido' }))
                     throw new Error(error.error || error.message || 'Erro na requisição')
@@ -165,7 +165,7 @@ async function uploadFile<T>(endpoint: string, file: File, fieldName: string, to
             try {
                 const tokens = await refreshPromise
                 headers['Authorization'] = `Bearer ${tokens.accessToken}`
-                const retryResponse = await fetch(url, { method: 'POST', headers, body: formData })
+                const retryResponse = await fetch(url, { method, headers, body: formData })
                 if (!retryResponse.ok) {
                     const error = await retryResponse.json().catch(() => ({ error: 'Erro desconhecido' }))
                     throw new Error(error.error || error.message || 'Erro na requisição')
@@ -228,6 +228,18 @@ export const municipiosApi = {
 
     inativar: (id: number, token?: string | null) =>
         request<void>(`/municipios/${id}/inativar`, { method: 'GET', token }),
+
+    uploadImageMunicipio: (id: number, file: File, token?: string | null) =>
+        uploadFile<Municipio>(`/municipios/${id}/image-municipio`, file, 'file', token, 'PUT'),
+
+    uploadImageEducacao: (id: number, file: File, token?: string | null) =>
+        uploadFile<Municipio>(`/municipios/${id}/image-educacao`, file, 'file', token, 'PUT'),
+
+    deleteImageMunicipio: (id: number, token?: string | null) =>
+        request<void>(`/municipios/${id}/image-municipio`, { method: 'DELETE', token }),
+
+    deleteImageEducacao: (id: number, token?: string | null) =>
+        request<void>(`/municipios/${id}/image-educacao`, { method: 'DELETE', token }),
 }
 
 // Usuarios API
