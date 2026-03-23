@@ -6,5 +6,6 @@ export { UsuariosPage } from './usuarios-page'
 export { DashboardPage } from './dashboard-page'
 export { PerfilPage } from './perfil-page'
 export { ConfiguracoesPage } from './configuracoes-page'
+export { GestorEscolasPage } from './gestor-escolas-page'
 
 

@@ -20,6 +20,7 @@ import {
   DashboardPage,
   PerfilPage,
   ConfiguracoesPage,
+  GestorEscolasPage,
 } from '@/pages/admin'
 
 // Municipio Pages
@@ -50,7 +51,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 function AdminRoute({ children }: { children: React.ReactNode }) {
   const { user } = useAuthStore()
 
-  if (user?.role !== 'ADMIN' && user?.role !== 'SUPERADMIN') {
+  if (user?.role !== 'ADMIN' && user?.role !== 'SUPERADMIN' && user?.role !== 'GESTOR') {
     return <Navigate to={`/municipio/${user?.municipioId}/solucoes`} replace />
   }
 
@@ -210,6 +211,14 @@ export default function App() {
             element={
               <AdminRoute>
                 <MunicipioRegioesPage />
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="/admin/gestor-escolas"
+            element={
+              <AdminRoute>
+                <GestorEscolasPage />
               </AdminRoute>
             }
           />

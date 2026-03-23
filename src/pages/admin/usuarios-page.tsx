@@ -22,6 +22,7 @@ export function UsuariosPage() {
     } = useDataStore()
     const { accessToken, user } = useAuthStore()
     const isSuperAdmin = user?.role === 'SUPERADMIN'
+    const isGestor = user?.role === 'GESTOR'
 
     const [nomeTerm, setNomeTerm] = useState('')
     const [debouncedNome, setDebouncedNome] = useState('')
@@ -317,7 +318,7 @@ export function UsuariosPage() {
                     <h1 className="h3 fw-bold text-dark mb-1">{activeTab === 'usuarios' ? 'Usuários' : 'Perfis'}</h1>
                     <p className="text-muted mb-0">{activeTab === 'usuarios' ? 'Gerencie os usuários do sistema' : 'Gerencie os perfis e permissões'}</p>
                 </div>
-                {activeTab === 'usuarios' ? (
+                {!isGestor && (activeTab === 'usuarios' ? (
                     <button className="btn btn-primary d-flex align-items-center gap-2" onClick={handleOpenModal}>
                         <i className="bi bi-plus-lg"></i>Novo Usuário
                     </button>
@@ -325,17 +326,19 @@ export function UsuariosPage() {
                     <button className="btn btn-primary d-flex align-items-center gap-2" onClick={handleOpenRoleModal}>
                         <i className="bi bi-plus-lg"></i>Novo Perfil
                     </button>
-                )}
+                ))}
             </div>
 
-            <ul className="nav nav-tabs mb-4">
-                <li className="nav-item">
-                    <button className={`nav-link ${activeTab === 'usuarios' ? 'active' : ''}`} onClick={() => setActiveTab('usuarios')}>Usuários</button>
-                </li>
-                <li className="nav-item">
-                    <button className={`nav-link ${activeTab === 'papeis' ? 'active' : ''}`} onClick={() => setActiveTab('papeis')}>Perfis</button>
-                </li>
-            </ul>
+            {!isGestor && (
+                <ul className="nav nav-tabs mb-4">
+                    <li className="nav-item">
+                        <button className={`nav-link ${activeTab === 'usuarios' ? 'active' : ''}`} onClick={() => setActiveTab('usuarios')}>Usuários</button>
+                    </li>
+                    <li className="nav-item">
+                        <button className={`nav-link ${activeTab === 'papeis' ? 'active' : ''}`} onClick={() => setActiveTab('papeis')}>Perfis</button>
+                    </li>
+                </ul>
+            )}
 
             {activeTab === 'usuarios' ? (
                 <>
@@ -439,7 +442,7 @@ export function UsuariosPage() {
                                             <th className="border-0">Tipo</th>
                                             <th className="border-0">Município</th>
                                             <th className="border-0">Status</th>
-                                            <th className="border-0 text-end">Ações</th>
+                                            {!isGestor && <th className="border-0 text-end">Ações</th>}
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -481,12 +484,14 @@ export function UsuariosPage() {
                                                         </span>
                                                     )}
                                                 </td>
-                                                <td className="align-middle text-end">
-                                                    <div className="btn-group btn-group-sm">
-                                                        <button className="btn btn-outline-primary" onClick={() => handleOpenEditModal(usuario)}><i className="bi bi-pencil"></i></button>
-                                                        <button className="btn btn-outline-danger" onClick={() => handleOpenDeleteModal(usuario)}><i className="bi bi-trash"></i></button>
-                                                    </div>
-                                                </td>
+                                                {!isGestor && (
+                                                    <td className="align-middle text-end">
+                                                        <div className="btn-group btn-group-sm">
+                                                            <button className="btn btn-outline-primary" onClick={() => handleOpenEditModal(usuario)}><i className="bi bi-pencil"></i></button>
+                                                            <button className="btn btn-outline-danger" onClick={() => handleOpenDeleteModal(usuario)}><i className="bi bi-trash"></i></button>
+                                                        </div>
+                                                    </td>
+                                                )}
                                             </tr>
                                         ))}
                                     </tbody>

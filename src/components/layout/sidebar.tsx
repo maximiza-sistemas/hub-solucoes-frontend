@@ -8,6 +8,7 @@ export function Sidebar() {
 
     const isAdmin = user?.role === 'ADMIN' || user?.role === 'SUPERADMIN'
     const isSuperAdmin = user?.role === 'SUPERADMIN'
+    const isGestor = user?.role === 'GESTOR'
 
     const adminMenuItems = [
         { path: '/admin/dashboard', label: 'Dashboard', icon: 'bi-speedometer2' },
@@ -21,6 +22,17 @@ export function Sidebar() {
         { path: '/admin/alunos', label: 'Alunos', icon: 'bi-person-badge' },
         { path: '/admin/grupos', label: 'Grupos', icon: 'bi-collection' },
         { path: '/admin/regioes', label: 'Regiões', icon: 'bi-geo-alt' },
+        { path: '/admin/gestor-escolas', label: 'Gestor Escolas', icon: 'bi-link-45deg' },
+    ]
+
+    const gestorMenuItems = [
+        { path: '/admin/dashboard', label: 'Dashboard', icon: 'bi-speedometer2' },
+        { path: '/admin/escolas', label: 'Escolas', icon: 'bi-building' },
+        { path: '/admin/turmas', label: 'Turmas', icon: 'bi-journal-text' },
+        { path: '/admin/alunos', label: 'Alunos', icon: 'bi-person-badge' },
+        { path: '/admin/grupos', label: 'Grupos', icon: 'bi-collection' },
+        { path: '/admin/regioes', label: 'Regiões', icon: 'bi-geo-alt' },
+        { path: '/admin/usuarios', label: 'Usuários', icon: 'bi-people' },
     ]
 
     const municipioMenuItems = [
@@ -34,7 +46,7 @@ export function Sidebar() {
         { path: `/municipio/${user?.municipioId}/grupos`, label: 'Grupos', icon: 'bi-collection' },
     ]
 
-    const menuItems = isAdmin ? adminMenuItems : municipioMenuItems
+    const menuItems = isGestor ? gestorMenuItems : isAdmin ? adminMenuItems : municipioMenuItems
 
     return (
         <div className={`sidebar d-flex flex-column ${isCollapsed ? 'collapsed' : ''}`}>

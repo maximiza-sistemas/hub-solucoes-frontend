@@ -209,7 +209,7 @@ export const authApi = {
 // Municipios API
 export const municipiosApi = {
     list: (token?: string | null, params?: Record<string, string | number | undefined>) =>
-        request<PageResponse<Municipio>>('/municipios', { token, params: { size: 1000, ...params } }),
+        request<PageResponse<Municipio>>('/municipios', { token, params: { ...params } }),
 
     get: (id: number, token?: string | null) =>
         request<Municipio>(`/municipios/${id}`, { token }),
@@ -245,7 +245,7 @@ export const municipiosApi = {
 // Usuarios API
 export const usuariosApi = {
     list: (token?: string | null, params?: Record<string, string | number | undefined>) =>
-        request<PageResponse<Usuario>>('/usuarios', { token, params: { size: 1000, ...params } }),
+        request<PageResponse<Usuario>>('/usuarios', { token, params: { ...params } }),
 
     get: (id: number, token?: string | null) =>
         request<Usuario>(`/usuarios/${id}`, { token }),
@@ -269,7 +269,7 @@ export const usuariosApi = {
 // Solucoes API
 export const solucoesApi = {
     list: (token?: string | null, params?: Record<string, string | number | undefined>) =>
-        request<PageResponse<Solucao>>('/solucoes', { token, params: { size: 1000, ...params } }),
+        request<PageResponse<Solucao>>('/solucoes', { token, params: { ...params } }),
 
     get: (id: number, token?: string | null) =>
         request<Solucao>(`/solucoes/${id}`, { token }),
@@ -293,7 +293,7 @@ export const solucoesApi = {
 // Escolas API
 export const escolasApi = {
     list: (token?: string | null, params?: Record<string, string | number | undefined>) =>
-        request<PageResponse<Escola>>('/escolas', { token, params: { size: 1000, ...params } }),
+        request<PageResponse<Escola>>('/escolas', { token, params: { ...params } }),
 
     get: (id: number, token?: string | null) =>
         request<Escola>(`/escolas/${id}`, { token }),
@@ -311,7 +311,7 @@ export const escolasApi = {
 // Alunos API
 export const alunosApi = {
     list: (token?: string | null, params?: Record<string, string | number | undefined>) =>
-        request<PageResponse<Aluno>>('/alunos', { token, params: { size: 1000, ...params } }),
+        request<PageResponse<Aluno>>('/alunos', { token, params: { ...params } }),
 
     get: (id: number, token?: string | null) =>
         request<Aluno>(`/alunos/${id}`, { token }),
@@ -332,7 +332,7 @@ export const alunosApi = {
 // Regioes API
 export const regioesApi = {
     list: (token?: string | null, params?: Record<string, string | number | undefined>) =>
-        request<PageResponse<Regiao>>('/regioes', { token, params: { size: 1000, ...params } }),
+        request<PageResponse<Regiao>>('/regioes', { token, params: { ...params } }),
 
     get: (id: number, token?: string | null) =>
         request<Regiao>(`/regioes/${id}`, { token }),
@@ -350,7 +350,7 @@ export const regioesApi = {
 // Grupos API
 export const gruposApi = {
     list: (token?: string | null, params?: Record<string, string | number | undefined>) =>
-        request<PageResponse<Grupo>>('/grupos', { token, params: { size: 1000, ...params } }),
+        request<PageResponse<Grupo>>('/grupos', { token, params: { ...params } }),
 
     get: (id: number, token?: string | null) =>
         request<Grupo>(`/grupos/${id}`, { token }),
@@ -368,7 +368,7 @@ export const gruposApi = {
 // Turmas API
 export const turmasApi = {
     list: (token?: string | null, params?: Record<string, string | number | undefined>) =>
-        request<PageResponse<Turma>>('/turmas', { token, params: { size: 1000, ...params } }),
+        request<PageResponse<Turma>>('/turmas', { token, params: { ...params } }),
 
     get: (id: number, token?: string | null) =>
         request<Turma>(`/turmas/${id}`, { token }),
@@ -386,7 +386,7 @@ export const turmasApi = {
 // Roles API
 export const rolesApi = {
     list: (token?: string | null, params?: Record<string, string | number | undefined>) =>
-        request<PageResponse<Role>>('/roles', { token, params: { size: 1000, ...params } }),
+        request<PageResponse<Role>>('/roles', { token, params: { ...params } }),
     get: (id: number, token?: string | null) =>
         request<Role>(`/roles/${id}`, { token }),
     create: (data: Partial<Role>, token?: string | null) =>
@@ -397,11 +397,32 @@ export const rolesApi = {
         request<void>(`/roles/${id}`, { method: 'DELETE', token }),
 }
 
+// Gestores API
+export const gestoresApi = {
+    listGestores: (token?: string | null, params?: Record<string, string | number | undefined>) =>
+        request<PageResponse<Usuario>>('/usuarios/gestores', { token, params: { ...params } }),
+
+    listGestoresByMunicipio: (municipioId: number, token?: string | null) =>
+        request<PageResponse<Usuario>>('/usuarios/gestores', { token, params: { municipioId } }),
+
+    getSchools: (gestorId: number, token?: string | null, params?: Record<string, string | number | undefined>) =>
+        request<PageResponse<Escola>>(`/gestores/${gestorId}/escolas`, { token, params }),
+
+    getAvailableSchools: (gestorId: number, token?: string | null, params?: Record<string, string | number | undefined>) =>
+        request<PageResponse<Escola>>(`/gestores/${gestorId}/escolas-disponiveis`, { token, params }),
+
+    addSchool: (gestorId: number, escolaId: number, token?: string | null) =>
+        request<Escola>(`/gestores/${gestorId}/escolas/${escolaId}`, { method: 'POST', token }),
+
+    removeSchool: (gestorId: number, escolaId: number, token?: string | null) =>
+        request<void>(`/gestores/${gestorId}/escolas/${escolaId}`, { method: 'DELETE', token }),
+}
+
 // Enums API
 export const enumsApi = {
     turnos: (token?: string | null, params?: Record<string, string | number | undefined>) =>
-        request<PageResponse<string>>('/enums/turnos', { token, params: { size: 100, ...params } }),
+        request<PageResponse<string>>('/enums/turnos', { token, params: { ...params } }),
 
     series: (token?: string | null, params?: Record<string, string | number | undefined>) =>
-        request<PageResponse<string>>('/enums/series', { token, params: { size: 100, ...params } }),
+        request<PageResponse<string>>('/enums/series', { token, params: { ...params } }),
 }
