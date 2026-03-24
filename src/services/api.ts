@@ -418,6 +418,24 @@ export const gestoresApi = {
         request<void>(`/gestores/${gestorId}/escolas/${escolaId}`, { method: 'DELETE', token }),
 }
 
+// Professores API
+export const professoresApi = {
+    listProfessoresByMunicipio: (municipioId: number, token?: string | null) =>
+        request<PageResponse<Usuario>>('/usuarios/professores', { token, params: { municipioId } }),
+
+    getTurmas: (professorId: number, token?: string | null, params?: Record<string, string | number | undefined>) =>
+        request<PageResponse<Turma>>(`/professores/${professorId}/turmas`, { token, params }),
+
+    getAvailableTurmas: (professorId: number, token?: string | null, params?: Record<string, string | number | undefined>) =>
+        request<PageResponse<Turma>>(`/professores/${professorId}/turmas-disponiveis`, { token, params }),
+
+    addTurma: (professorId: number, turmaId: number, token?: string | null) =>
+        request<Turma>(`/professores/${professorId}/turmas/${turmaId}`, { method: 'POST', token }),
+
+    removeTurma: (professorId: number, turmaId: number, token?: string | null) =>
+        request<void>(`/professores/${professorId}/turmas/${turmaId}`, { method: 'DELETE', token }),
+}
+
 // Enums API
 export const enumsApi = {
     turnos: (token?: string | null, params?: Record<string, string | number | undefined>) =>

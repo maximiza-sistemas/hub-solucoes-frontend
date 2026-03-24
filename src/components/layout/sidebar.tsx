@@ -22,7 +22,8 @@ export function Sidebar() {
         { path: '/admin/alunos', label: 'Alunos', icon: 'bi-person-badge' },
         { path: '/admin/grupos', label: 'Grupos', icon: 'bi-collection' },
         { path: '/admin/regioes', label: 'Regiões', icon: 'bi-geo-alt' },
-        { path: '/admin/gestor-escolas', label: 'Gestor Escolas', icon: 'bi-link-45deg' },
+        { path: '/admin/gestor-escolas', label: 'Gestor', icon: 'bi-link-45deg' },
+        { path: '/admin/professor-turmas', label: 'Professor', icon: 'bi-person-workspace' },
     ]
 
     const gestorMenuItems = [

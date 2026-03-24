@@ -21,6 +21,7 @@ import {
   PerfilPage,
   ConfiguracoesPage,
   GestorEscolasPage,
+  ProfessorTurmasPage,
 } from '@/pages/admin'
 
 // Municipio Pages
@@ -219,6 +220,14 @@ export default function App() {
             element={
               <AdminRoute>
                 <GestorEscolasPage />
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="/admin/professor-turmas"
+            element={
+              <AdminRoute>
+                <ProfessorTurmasPage />
               </AdminRoute>
             }
           />
