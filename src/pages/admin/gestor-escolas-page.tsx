@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useAuthStore } from '@/stores'
 import { Navigate } from 'react-router-dom'
-import { Pagination, PageLoading } from '@/components/ui'
+import { Pagination, PageLoading, TableLoading } from '@/components/ui'
 import { gestoresApi, municipiosApi, escolasApi } from '@/services/api'
 import type { Usuario, Escola, Municipio, PageResponse } from '@/types'
 import { toast } from 'sonner'
@@ -42,6 +42,7 @@ export function GestorEscolasPage() {
 
     const [initialLoading, setInitialLoading] = useState(true)
     const [isLoading, setIsLoading] = useState(false)
+    const [isFetching, setIsFetching] = useState(false)
 
     // Load municipios on mount
     useEffect(() => {
@@ -75,6 +76,7 @@ export function GestorEscolasPage() {
 
     const loadLinkedSchools = async (gestorId = appliedGestorId) => {
         if (!gestorId) return
+        setIsFetching(true)
         try {
             const response = await gestoresApi.getSchools(gestorId, accessToken, {
                 page: linkedPage,
@@ -84,11 +86,14 @@ export function GestorEscolasPage() {
             setLinkedPagination({ page: response.page, size: response.size, totalElements: response.totalElements, totalPages: response.totalPages })
         } catch (error) {
             console.error('Erro ao carregar escolas vinculadas:', error)
+        } finally {
+            setIsFetching(false)
         }
     }
 
     const loadAvailableSchools = async (gestorId = appliedGestorId, municipioId = appliedMunicipioId, escolaId = appliedEscolaId) => {
         if (!gestorId) return
+        setIsFetching(true)
         try {
             const escolaNome = escolaId ? escolasFiltro.find(e => e.id === Number(escolaId))?.nome : undefined
             const response = await gestoresApi.getAvailableSchools(gestorId, accessToken, {
@@ -101,6 +106,8 @@ export function GestorEscolasPage() {
             setAvailablePagination({ page: response.page, size: response.size, totalElements: response.totalElements, totalPages: response.totalPages })
         } catch (error) {
             console.error('Erro ao carregar escolas disponíveis:', error)
+        } finally {
+            setIsFetching(false)
         }
     }
 
@@ -117,6 +124,7 @@ export function GestorEscolasPage() {
         setAvailablePage(0)
 
         const loadData = async () => {
+            setIsFetching(true)
             try {
                 const escolaNome = filterEscolaId ? escolasFiltro.find(e => e.id === Number(filterEscolaId))?.nome : undefined
                 const [linked, available] = await Promise.all([
@@ -134,6 +142,8 @@ export function GestorEscolasPage() {
                 setAvailablePagination({ page: available.page, size: available.size, totalElements: available.totalElements, totalPages: available.totalPages })
             } catch (error) {
                 console.error('Erro ao aplicar filtros:', error)
+            } finally {
+                setIsFetching(false)
             }
         }
         loadData()
@@ -279,6 +289,7 @@ export function GestorEscolasPage() {
                     </ul>
 
                     {activeTab === 'disponiveis' ? (
+                        <TableLoading isLoading={isFetching}>
                         <div className="card border-0 shadow-sm">
                             <div className="card-body p-0">
                                 <div className="table-responsive">
@@ -340,7 +351,9 @@ export function GestorEscolasPage() {
                                 </div>
                             )}
                         </div>
+                        </TableLoading>
                     ) : (
+                        <TableLoading isLoading={isFetching}>
                         <div className="card border-0 shadow-sm">
                             <div className="card-body p-0">
                                 <div className="table-responsive">
@@ -402,6 +415,7 @@ export function GestorEscolasPage() {
                                 </div>
                             )}
                         </div>
+                        </TableLoading>
                     )}
                 </>
             )}

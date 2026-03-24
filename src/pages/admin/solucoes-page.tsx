@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useAuthStore, useDataStore } from '@/stores'
-import { Pagination, PageLoading } from '@/components/ui'
+import { Pagination, PageLoading, TableLoading } from '@/components/ui'
 import { solucoesApi } from '@/services/api'
 import type { Solucao, PageResponse } from '@/types'
 
@@ -23,6 +23,7 @@ export function SolucoesPage() {
     const [isLoading, setIsLoading] = useState(false)
 
     const [initialLoading, setInitialLoading] = useState(true)
+    const [isFetching, setIsFetching] = useState(false)
 
     const [formData, setFormData] = useState({
         nome: '',
@@ -33,6 +34,7 @@ export function SolucoesPage() {
     const [formErrors, setFormErrors] = useState<Record<string, string>>({})
 
     const loadSolucoes = async (page = currentPage, options?: { nome?: string; ativo?: string; municipio?: string }) => {
+        setIsFetching(true)
         try {
             const nomeParam = options?.nome !== undefined ? options.nome : debouncedSearch
             const ativoParam = options?.ativo !== undefined ? options.ativo : ativoFilter
@@ -48,6 +50,8 @@ export function SolucoesPage() {
             setPagination(data)
         } catch (error) {
             console.error('Erro ao carregar soluções:', error)
+        } finally {
+            setIsFetching(false)
         }
     }
 
@@ -285,6 +289,7 @@ export function SolucoesPage() {
             </div>
 
             {/* Table */}
+            <TableLoading isLoading={isFetching}>
             <div className="card border-0 shadow-sm">
                 <div className="card-body p-0">
                     <div className="table-responsive">
@@ -362,6 +367,7 @@ export function SolucoesPage() {
                     </div>
                 )}
             </div>
+            </TableLoading>
 
             {solucoes.length === 0 && (
                 <div className="text-center py-5">

@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useDataStore } from '@/stores'
-import { PageLoading } from '@/components/ui'
+import { PageLoading, TableLoading } from '@/components/ui'
 
 export function MunicipiosPage() {
     const {
@@ -18,6 +18,7 @@ export function MunicipiosPage() {
     } = useDataStore()
     const navigate = useNavigate()
     const [initialLoading, setInitialLoading] = useState(true)
+    const [isFetching, setIsFetching] = useState(false)
     const [searchTerm, setSearchTerm] = useState('')
     const [statusFilter, setStatusFilter] = useState<string>('todos')
 
@@ -119,6 +120,7 @@ export function MunicipiosPage() {
     const handleToggleAtivo = async (e: React.MouseEvent, municipio: typeof municipios[0]) => {
         e.stopPropagation()
         setOpenDropdownId(null)
+        setIsFetching(true)
         try {
             if (municipio.ativo) {
                 await inativarMunicipio(municipio.id)
@@ -127,6 +129,8 @@ export function MunicipiosPage() {
             }
         } catch (error) {
             console.error('Erro ao alterar status:', error)
+        } finally {
+            setIsFetching(false)
         }
     }
 
@@ -316,6 +320,7 @@ export function MunicipiosPage() {
             </div>
 
             {/* Municipalities Grid */}
+            <TableLoading isLoading={isFetching}>
             <div className="row g-4" ref={dropdownRef}>
                 {filteredMunicipios.map((municipio) => {
                     const isDropdownOpen = openDropdownId === municipio.id
@@ -423,6 +428,7 @@ export function MunicipiosPage() {
                     )
                 })}
             </div>
+            </TableLoading>
 
             {filteredMunicipios.length === 0 && (
                 <div className="text-center py-5">

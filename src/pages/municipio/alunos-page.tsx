@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useDataStore } from '@/stores'
-import { Pagination, PageLoading } from '@/components/ui'
+import { Pagination, PageLoading, TableLoading } from '@/components/ui'
 import { escolasApi, turmasApi } from '@/services/api'
 import { useAuthStore } from '@/stores/auth-store'
 import type { Aluno, Escola, Turma } from '@/types'
@@ -76,6 +76,7 @@ export function MunicipioAlunosPage() {
         municipioId: munId ? String(munId) : '',
     })
     const [initialLoading, setInitialLoading] = useState(true)
+    const [isFetching, setIsFetching] = useState(false)
     const [formErrors, setFormErrors] = useState<Record<string, string>>({})
     const [formEscolas, setFormEscolas] = useState<Escola[]>([])
     const [formTurmas, setFormTurmas] = useState<Turma[]>([])
@@ -114,8 +115,10 @@ export function MunicipioAlunosPage() {
     const municipio = munId ? municipios.find((m) => m.id === munId) : undefined
     const alunosPagination = pagination.alunos || { page: 0, size: pageSize, totalElements: 0, totalPages: 0 }
 
-    const refetchAlunos = () =>
-        fetchAlunos({
+    const refetchAlunos = async () => {
+        setIsFetching(true)
+        try {
+            return await fetchAlunos({
             municipioId: munId || (appliedFilters.municipioId ? Number(appliedFilters.municipioId) : undefined),
             page: currentPage,
             size: pageSize,
@@ -125,6 +128,10 @@ export function MunicipioAlunosPage() {
             turmaId: appliedFilters.turmaId ? Number(appliedFilters.turmaId) : undefined,
             escolaId: appliedFilters.escolaId ? Number(appliedFilters.escolaId) : undefined,
         })
+        } finally {
+            setIsFetching(false)
+        }
+    }
 
     useEffect(() => {
         if (!initialLoading) refetchAlunos()
@@ -430,6 +437,7 @@ export function MunicipioAlunosPage() {
 
             {/* Table */}
             {alunos.length > 0 ? (
+                <TableLoading isLoading={isFetching}>
                 <div className="card border-0 shadow-sm">
                     <div className="card-body p-0">
                         <div className="table-responsive">
@@ -492,6 +500,7 @@ export function MunicipioAlunosPage() {
                         </div>
                     )}
                 </div>
+                </TableLoading>
             ) : (
                 <div className="text-center py-5">
                     <i className="bi bi-inbox text-muted" style={{ fontSize: 48 }}></i>

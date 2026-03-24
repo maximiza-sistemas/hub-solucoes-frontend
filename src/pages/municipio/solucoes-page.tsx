@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useDataStore, useAuthStore } from '@/stores'
-import { Pagination, PageLoading } from '@/components/ui'
+import { Pagination, PageLoading, TableLoading } from '@/components/ui'
 import { solucoesApi } from '@/services/api'
 import type { Solucao, PageResponse } from '@/types'
 
@@ -26,11 +26,13 @@ export function MunicipioSolucoesPage() {
     const [ativoFilter, setAtivoFilter] = useState('')
 
     const [initialLoading, setInitialLoading] = useState(true)
+    const [isFetching, setIsFetching] = useState(false)
 
     const [formData, setFormData] = useState({ nome: '', descricao: '', link: '' })
     const [formErrors, setFormErrors] = useState<Record<string, string>>({})
 
     const loadSolucoes = async (page = currentPage, options?: { nome?: string; ativo?: string }) => {
+        setIsFetching(true)
         try {
             const nomeParam = options?.nome !== undefined ? options.nome : debouncedSearch
             const ativoParam = options?.ativo !== undefined ? options.ativo : ativoFilter
@@ -45,6 +47,8 @@ export function MunicipioSolucoesPage() {
             setPagination(data)
         } catch (error) {
             console.error('Erro ao carregar soluções:', error)
+        } finally {
+            setIsFetching(false)
         }
     }
 
@@ -191,6 +195,7 @@ export function MunicipioSolucoesPage() {
             </div>
 
             {solucoes.length > 0 ? (
+                <TableLoading isLoading={isFetching}>
                 <div className="card border-0 shadow-sm">
                     <div className="card-body p-0">
                         <div className="table-responsive">
@@ -240,6 +245,7 @@ export function MunicipioSolucoesPage() {
                         </div>
                     )}
                 </div>
+                </TableLoading>
             ) : (
                 <div className="text-center py-5">
                     <div className="d-flex align-items-center justify-content-center rounded-circle bg-primary bg-opacity-10 mx-auto mb-4" style={{ width: 100, height: 100 }}><i className="bi bi-mortarboard text-primary" style={{ fontSize: 48 }}></i></div>

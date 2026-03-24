@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useDataStore } from '@/stores'
-import { Pagination, PageLoading } from '@/components/ui'
+import { Pagination, PageLoading, TableLoading } from '@/components/ui'
 import type { Usuario } from '@/types'
 
 export function MunicipioUsuariosPage() {
@@ -37,6 +37,7 @@ export function MunicipioUsuariosPage() {
     const [isLoading, setIsLoading] = useState(false)
 
     const [initialLoading, setInitialLoading] = useState(true)
+    const [isFetching, setIsFetching] = useState(false)
 
     const [formData, setFormData] = useState({
         nome: '',
@@ -69,19 +70,24 @@ export function MunicipioUsuariosPage() {
         setCurrentPage(0)
     }, [debouncedNome, debouncedEmail, ativoFilter, pageSize, munId])
 
-    const refetchUsuarios = (page = currentPage, overrides?: { nome?: string; email?: string; ativo?: string }) => {
+    const refetchUsuarios = async (page = currentPage, overrides?: { nome?: string; email?: string; ativo?: string }) => {
         const nomeParam = overrides?.nome !== undefined ? overrides.nome : debouncedNome
         const emailParam = overrides?.email !== undefined ? overrides.email : debouncedEmail
         const ativoParam = overrides?.ativo !== undefined ? overrides.ativo : ativoFilter
 
-        return fetchUsuarios({
-            municipioId: munId,
-            page,
-            size: pageSize,
-            nome: nomeParam || undefined,
-            email: emailParam || undefined,
-            ativo: ativoParam === '' ? undefined : ativoParam,
-        })
+        setIsFetching(true)
+        try {
+            return await fetchUsuarios({
+                municipioId: munId,
+                page,
+                size: pageSize,
+                nome: nomeParam || undefined,
+                email: emailParam || undefined,
+                ativo: ativoParam === '' ? undefined : ativoParam,
+            })
+        } finally {
+            setIsFetching(false)
+        }
     }
 
     useEffect(() => {
@@ -281,6 +287,7 @@ export function MunicipioUsuariosPage() {
 
             {/* Table */}
             {usuarios.length > 0 ? (
+                <TableLoading isLoading={isFetching}>
                 <div className="card border-0 shadow-sm">
                     <div className="card-body p-0">
                         <div className="table-responsive">
@@ -340,6 +347,7 @@ export function MunicipioUsuariosPage() {
                         </div>
                     )}
                 </div>
+                </TableLoading>
             ) : (
                 <div className="text-center py-5">
                     <i className="bi bi-inbox text-muted" style={{ fontSize: 48 }}></i>

@@ -1,7 +1,7 @@
 import { useState, useEffect, type FormEvent } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useDataStore } from '@/stores'
-import { Pagination, PageLoading } from '@/components/ui'
+import { Pagination, PageLoading, TableLoading } from '@/components/ui'
 import { enumsApi, escolasApi } from '@/services/api'
 import { useAuthStore } from '@/stores/auth-store'
 import type { Turma, Escola } from '@/types'
@@ -42,6 +42,7 @@ export function MunicipioTurmasPage() {
 
 
     const [initialLoading, setInitialLoading] = useState(true)
+    const [isFetching, setIsFetching] = useState(false)
     const [turnos, setTurnos] = useState<string[]>([])
     const [series, setSeries] = useState<string[]>([])
     const [isLoading, setIsLoading] = useState(false)
@@ -90,16 +91,21 @@ export function MunicipioTurmasPage() {
         Promise.all([fetchMunicipios(), escolasPromise, turnosPromise, seriesPromise, refetchTurmas()]).finally(() => setInitialLoading(false))
     }, [])
 
-    const refetchTurmas = (page = currentPage) => {
-        fetchTurmas({
-            municipioId: munId || (appliedFilters.municipioFilter ? Number(appliedFilters.municipioFilter) : undefined),
-            page,
-            size: pageSize,
-            nome: appliedFilters.searchTerm || undefined,
-            turno: appliedFilters.turnoFilter || undefined,
-            serie: appliedFilters.serieFilter || undefined,
-            escolaId: appliedFilters.escolaFilter || undefined,
-        })
+    const refetchTurmas = async (page = currentPage) => {
+        setIsFetching(true)
+        try {
+            await fetchTurmas({
+                municipioId: munId || (appliedFilters.municipioFilter ? Number(appliedFilters.municipioFilter) : undefined),
+                page,
+                size: pageSize,
+                nome: appliedFilters.searchTerm || undefined,
+                turno: appliedFilters.turnoFilter || undefined,
+                serie: appliedFilters.serieFilter || undefined,
+                escolaId: appliedFilters.escolaFilter || undefined,
+            })
+        } finally {
+            setIsFetching(false)
+        }
     }
 
     useEffect(() => {
@@ -256,6 +262,7 @@ export function MunicipioTurmasPage() {
                 </div>
             </div>
 
+            <TableLoading isLoading={isFetching}>
             <div className="card border-0 shadow-sm">
                 <div className="card-body p-0">
                     <div className="table-responsive">
@@ -319,6 +326,7 @@ export function MunicipioTurmasPage() {
                     </div>
                 )}
             </div>
+            </TableLoading>
 
             {/* Modals - Simplificados para garantir que não crashem */}
             {showAddModal && (

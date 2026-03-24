@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useDataStore } from '@/stores'
-import { Pagination, PageLoading } from '@/components/ui'
+import { Pagination, PageLoading, TableLoading } from '@/components/ui'
 import type { Escola } from '@/types'
 
 export function MunicipioEscolasPage() {
@@ -42,6 +42,7 @@ export function MunicipioEscolasPage() {
     const [municipioFilter, setMunicipioFilter] = useState('')
 
     const [initialLoading, setInitialLoading] = useState(true)
+    const [isFetching, setIsFetching] = useState(false)
 
     const [formData, setFormData] = useState({ nome: '', grupoId: '', regiaoId: '', municipioId: munId ? String(munId) : '' })
     const [formErrors, setFormErrors] = useState<Record<string, string>>({})
@@ -67,16 +68,21 @@ export function MunicipioEscolasPage() {
 
     const escolasPagination = pagination.escolas || { page: 0, size: pageSize, totalElements: 0, totalPages: 0 }
 
-    const refetchEscolas = () => {
+    const refetchEscolas = async () => {
         const municipioParam = municipioFilter ? Number(municipioFilter) : munId
-        fetchEscolas({
-            municipioId: municipioParam,
-            page: currentPage,
-            size: pageSize,
-            nome: debouncedSearch || undefined,
-            grupoId: grupoFilter ? Number(grupoFilter) : undefined,
-            regiaoId: regiaoFilter ? Number(regiaoFilter) : undefined,
-        })
+        setIsFetching(true)
+        try {
+            await fetchEscolas({
+                municipioId: municipioParam,
+                page: currentPage,
+                size: pageSize,
+                nome: debouncedSearch || undefined,
+                grupoId: grupoFilter ? Number(grupoFilter) : undefined,
+                regiaoId: regiaoFilter ? Number(regiaoFilter) : undefined,
+            })
+        } finally {
+            setIsFetching(false)
+        }
     }
 
     useEffect(() => {
@@ -260,6 +266,7 @@ export function MunicipioEscolasPage() {
             </div>
 
             {escolas.length > 0 ? (
+                <TableLoading isLoading={isFetching}>
                 <div className="card border-0 shadow-sm">
                     <div className="card-body p-0">
                         <div className="table-responsive">
@@ -324,6 +331,7 @@ export function MunicipioEscolasPage() {
                         </div>
                     )}
                 </div>
+                </TableLoading>
             ) : (
                 <div className="text-center py-5">
                     <div className="d-flex align-items-center justify-content-center rounded-circle bg-primary bg-opacity-10 mx-auto mb-4" style={{ width: 100, height: 100 }}>

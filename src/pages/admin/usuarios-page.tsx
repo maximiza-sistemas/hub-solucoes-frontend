@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useDataStore, useAuthStore } from '@/stores'
-import { Pagination, PageLoading } from '@/components/ui'
+import { Pagination, PageLoading, TableLoading } from '@/components/ui'
 import { usuariosApi } from '@/services/api'
 import type { Usuario, Role } from '@/types'
 
@@ -51,6 +51,7 @@ export function UsuariosPage() {
     const [rolePageSize, setRolePageSize] = useState(10)
 
     const [initialLoading, setInitialLoading] = useState(true)
+    const [isFetching, setIsFetching] = useState(false)
 
     const [formData, setFormData] = useState({
         nome: '',
@@ -84,20 +85,25 @@ export function UsuariosPage() {
 
     const usuariosPagination = pagination.usuarios || { page: 0, size: pageSize, totalElements: 0, totalPages: 0 }
 
-    const refetchUsuarios = (page = currentPage, overrides?: { nome?: string; email?: string; ativo?: string; municipio?: string }) => {
+    const refetchUsuarios = async (page = currentPage, overrides?: { nome?: string; email?: string; ativo?: string; municipio?: string }) => {
         const nomeParam = overrides?.nome !== undefined ? overrides.nome : debouncedNome
         const emailParam = overrides?.email !== undefined ? overrides.email : debouncedEmail
         const ativoParam = overrides?.ativo !== undefined ? overrides.ativo : ativoFilter
         const municipioParam = overrides?.municipio !== undefined ? overrides.municipio : municipioFilter
 
-        return fetchUsuarios({
-            page,
-            size: pageSize,
-            nome: nomeParam || undefined,
-            email: emailParam || undefined,
-            ativo: ativoParam === '' ? undefined : ativoParam,
-            municipioId: municipioParam ? Number(municipioParam) : undefined,
-        })
+        setIsFetching(true)
+        try {
+            return await fetchUsuarios({
+                page,
+                size: pageSize,
+                nome: nomeParam || undefined,
+                email: emailParam || undefined,
+                ativo: ativoParam === '' ? undefined : ativoParam,
+                municipioId: municipioParam ? Number(municipioParam) : undefined,
+            })
+        } finally {
+            setIsFetching(false)
+        }
     }
 
     useEffect(() => {
@@ -106,12 +112,17 @@ export function UsuariosPage() {
 
     const rolesPagination = pagination.roles || { page: 0, size: rolePageSize, totalElements: 0, totalPages: 0 }
 
-    const refetchRoles = (page = rolePage, size = rolePageSize, search = debouncedRoleSearch) => {
-        return fetchRoles({
-            page,
-            size,
-            descricao: search || undefined
-        })
+    const refetchRoles = async (page = rolePage, size = rolePageSize, search = debouncedRoleSearch) => {
+        setIsFetching(true)
+        try {
+            return await fetchRoles({
+                page,
+                size,
+                descricao: search || undefined
+            })
+        } finally {
+            setIsFetching(false)
+        }
     }
 
     useEffect(() => {
@@ -432,6 +443,7 @@ export function UsuariosPage() {
                     </div>
 
                     {/* Table */}
+                    <TableLoading isLoading={isFetching}>
                     <div className="card border-0 shadow-sm">
                         <div className="card-body p-0">
                             <div className="table-responsive">
@@ -513,6 +525,7 @@ export function UsuariosPage() {
                             </div>
                         )}
                     </div>
+                    </TableLoading>
 
                     {usuarios.length === 0 && (
                         <div className="text-center py-5">
@@ -710,6 +723,7 @@ export function UsuariosPage() {
                         </div>
                     </div>
 
+                    <TableLoading isLoading={isFetching}>
                     <div className="card border-0 shadow-sm">
                         <div className="card-body p-0">
                             <div className="table-responsive">
@@ -771,6 +785,7 @@ export function UsuariosPage() {
                             />
                         </div>
                     </div>
+                    </TableLoading>
 
                     {roles.length === 0 && (
                         <div className="text-center py-5">

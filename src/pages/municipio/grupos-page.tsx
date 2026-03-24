@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useDataStore } from '@/stores'
-import { Pagination, PageLoading } from '@/components/ui'
+import { Pagination, PageLoading, TableLoading } from '@/components/ui'
 import type { Grupo } from '@/types'
 
 export function MunicipioGruposPage() {
@@ -25,6 +25,7 @@ export function MunicipioGruposPage() {
     }, [])
 
     const [initialLoading, setInitialLoading] = useState(true)
+    const [isFetching, setIsFetching] = useState(false)
     const [showAddModal, setShowAddModal] = useState(false)
     const [showEditModal, setShowEditModal] = useState(false)
     const [showDeleteModal, setShowDeleteModal] = useState(false)
@@ -36,13 +37,19 @@ export function MunicipioGruposPage() {
 
     const gruposPagination = pagination.grupos || { page: 0, size: pageSize, totalElements: 0, totalPages: 0 }
 
-    const refetchGrupos = () =>
-        fetchGrupos({
-            municipioId: munId || (appliedFilters.municipioFilter ? Number(appliedFilters.municipioFilter) : undefined),
-            page: currentPage,
-            size: pageSize,
-            nome: appliedFilters.searchTerm || undefined,
-        })
+    const refetchGrupos = async () => {
+        setIsFetching(true)
+        try {
+            return await fetchGrupos({
+                municipioId: munId || (appliedFilters.municipioFilter ? Number(appliedFilters.municipioFilter) : undefined),
+                page: currentPage,
+                size: pageSize,
+                nome: appliedFilters.searchTerm || undefined,
+            })
+        } finally {
+            setIsFetching(false)
+        }
+    }
 
     useEffect(() => {
         if (!initialLoading) refetchGrupos()
@@ -162,6 +169,7 @@ export function MunicipioGruposPage() {
             </div>
 
             {grupos.length > 0 ? (
+                <TableLoading isLoading={isFetching}>
                 <div className="card border-0 shadow-sm">
                     <div className="card-body p-0">
                         <div className="table-responsive">
@@ -208,6 +216,7 @@ export function MunicipioGruposPage() {
                         </div>
                     )}
                 </div>
+                </TableLoading>
             ) : (
                 <div className="text-center py-5">
                     <i className="bi bi-collection text-muted" style={{ fontSize: 48 }}></i>
