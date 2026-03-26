@@ -81,7 +81,7 @@ async function request<T>(endpoint: string, options: RequestOptions = {}): Promi
                 const retryResponse = await fetch(url, retryConfig)
                 if (!retryResponse.ok) {
                     const error = await retryResponse.json().catch(() => ({ error: 'Erro desconhecido' }))
-                    throw new Error(error.error || error.message || 'Erro na requisição')
+                    throw new Error(error.message || error.error || 'Erro na requisição')
                 }
                 return retryResponse.json()
             } catch {
@@ -100,7 +100,7 @@ async function request<T>(endpoint: string, options: RequestOptions = {}): Promi
                 const retryResponse = await fetch(url, retryConfig)
                 if (!retryResponse.ok) {
                     const error = await retryResponse.json().catch(() => ({ error: 'Erro desconhecido' }))
-                    throw new Error(error.error || error.message || 'Erro na requisição')
+                    throw new Error(error.message || error.error || 'Erro na requisição')
                 }
                 return retryResponse.json()
             } catch {
@@ -111,7 +111,7 @@ async function request<T>(endpoint: string, options: RequestOptions = {}): Promi
 
     if (!response.ok) {
         const error = await response.json().catch(() => ({ error: 'Erro desconhecido' }))
-        throw new Error(error.error || error.message || 'Erro na requisição')
+        throw new Error(error.message || error.error || 'Erro na requisição')
     }
 
     // Handle 204 No Content
@@ -152,7 +152,7 @@ async function uploadFile<T>(endpoint: string, file: File, fieldName: string, to
                 const retryResponse = await fetch(url, { method, headers, body: formData })
                 if (!retryResponse.ok) {
                     const error = await retryResponse.json().catch(() => ({ error: 'Erro desconhecido' }))
-                    throw new Error(error.error || error.message || 'Erro na requisição')
+                    throw new Error(error.message || error.error || 'Erro na requisição')
                 }
                 return retryResponse.json()
             } catch {
@@ -168,7 +168,7 @@ async function uploadFile<T>(endpoint: string, file: File, fieldName: string, to
                 const retryResponse = await fetch(url, { method, headers, body: formData })
                 if (!retryResponse.ok) {
                     const error = await retryResponse.json().catch(() => ({ error: 'Erro desconhecido' }))
-                    throw new Error(error.error || error.message || 'Erro na requisição')
+                    throw new Error(error.message || error.error || 'Erro na requisição')
                 }
                 return retryResponse.json()
             } catch {
@@ -179,7 +179,7 @@ async function uploadFile<T>(endpoint: string, file: File, fieldName: string, to
 
     if (!response.ok) {
         const error = await response.json().catch(() => ({ error: 'Erro desconhecido' }))
-        throw new Error(error.error || error.message || 'Erro na requisição')
+        throw new Error(error.message || error.error || 'Erro na requisição')
     }
 
     return response.json()
@@ -264,6 +264,12 @@ export const usuariosApi = {
 
     inativar: (id: number, token?: string | null) =>
         request<void>(`/usuarios/${id}/inativar`, { method: 'GET', token }),
+
+    alterarSenha: (id: number, data: { senhaAtual: string; novaSenha: string }, token?: string | null) =>
+        request<void>(`/usuarios/${id}/alterar-senha`, { method: 'PUT', body: data, token }),
+
+    resetSenha: (id: number, data: { novaSenha: string }, token?: string | null) =>
+        request<void>(`/usuarios/${id}/reset-senha`, { method: 'PUT', body: data, token }),
 }
 
 // Solucoes API

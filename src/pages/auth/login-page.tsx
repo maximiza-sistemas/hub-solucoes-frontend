@@ -61,12 +61,12 @@ export function LoginPage() {
 
             login(user, response.accessToken, response.refreshToken)
 
-            if (response.role === 'SUPERADMIN') {
-                navigate('/admin/municipios')
+            if (response.role === 'SUPERADMIN' || response.role === 'ADMIN') {
+                navigate('/admin/dashboard')
             } else if (user.municipioId) {
                 navigate(`/municipio/${user.municipioId}/dashboard`)
             } else {
-                navigate('/admin/municipios')
+                navigate('/admin/dashboard')
             }
         } catch (err) {
             const message = (err as Error).message
@@ -144,15 +144,6 @@ export function LoginPage() {
                                             {error}
                                         </div>
                                     )}
-
-                                    <div className="mb-4">
-                                        <div className="form-check">
-                                            <input type="checkbox" className="form-check-input" id="rememberMe" />
-                                            <label className="form-check-label small" htmlFor="rememberMe">
-                                                Lembrar-me
-                                            </label>
-                                        </div>
-                                    </div>
 
                                     <button
                                         type="submit"

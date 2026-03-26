@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useDataStore, useAuthStore } from '@/stores'
 import { Pagination, PageLoading, TableLoading } from '@/components/ui'
 import { usuariosApi } from '@/services/api'
+import { toast } from 'sonner'
 import type { Usuario, Role } from '@/types'
 
 export function UsuariosPage() {
@@ -52,6 +53,11 @@ export function UsuariosPage() {
 
     const [initialLoading, setInitialLoading] = useState(true)
     const [isFetching, setIsFetching] = useState(false)
+
+    const [showResetPasswordModal, setShowResetPasswordModal] = useState(false)
+    const [resetPasswordForm, setResetPasswordForm] = useState({ novaSenha: '', confirmarSenha: '' })
+    const [resetPasswordErrors, setResetPasswordErrors] = useState<Record<string, string>>({})
+    const [isResettingPassword, setIsResettingPassword] = useState(false)
 
     const [formData, setFormData] = useState({
         nome: '',
@@ -240,6 +246,37 @@ export function UsuariosPage() {
             console.error('Erro ao excluir usuário:', error)
         } finally {
             setIsLoading(false)
+        }
+    }
+
+    const handleOpenResetPasswordModal = (usuario: Usuario) => {
+        setSelectedUsuario(usuario)
+        setResetPasswordForm({ novaSenha: '', confirmarSenha: '' })
+        setResetPasswordErrors({})
+        setShowResetPasswordModal(true)
+    }
+
+    const validateResetPasswordForm = () => {
+        const errors: Record<string, string> = {}
+        if (!resetPasswordForm.novaSenha || resetPasswordForm.novaSenha.length < 6) errors.novaSenha = 'Senha deve ter no mínimo 6 caracteres'
+        if (resetPasswordForm.novaSenha !== resetPasswordForm.confirmarSenha) errors.confirmarSenha = 'As senhas não coincidem'
+        setResetPasswordErrors(errors)
+        return Object.keys(errors).length === 0
+    }
+
+    const handleResetPasswordSubmit = async (e: React.FormEvent) => {
+        e.preventDefault()
+        if (!validateResetPasswordForm() || !selectedUsuario) return
+        setIsResettingPassword(true)
+        try {
+            await usuariosApi.resetSenha(selectedUsuario.id, { novaSenha: resetPasswordForm.novaSenha }, accessToken)
+            toast.success('Senha resetada com sucesso!')
+            setShowResetPasswordModal(false)
+            setSelectedUsuario(null)
+        } catch (error: any) {
+            toast.error(error.message || 'Erro ao resetar senha')
+        } finally {
+            setIsResettingPassword(false)
         }
     }
 
@@ -499,8 +536,11 @@ export function UsuariosPage() {
                                                 {!isGestor && (
                                                     <td className="align-middle text-end">
                                                         <div className="btn-group btn-group-sm">
-                                                            <button className="btn btn-outline-primary" onClick={() => handleOpenEditModal(usuario)}><i className="bi bi-pencil"></i></button>
-                                                            <button className="btn btn-outline-danger" onClick={() => handleOpenDeleteModal(usuario)}><i className="bi bi-trash"></i></button>
+                                                            <button className="btn btn-outline-primary" onClick={() => handleOpenEditModal(usuario)} title="Editar"><i className="bi bi-pencil"></i></button>
+                                                            {isSuperAdmin && (
+                                                                <button className="btn btn-outline-warning" onClick={() => handleOpenResetPasswordModal(usuario)} title="Resetar Senha"><i className="bi bi-key"></i></button>
+                                                            )}
+                                                            <button className="btn btn-outline-danger" onClick={() => handleOpenDeleteModal(usuario)} title="Excluir"><i className="bi bi-trash"></i></button>
                                                         </div>
                                                     </td>
                                                 )}
@@ -675,6 +715,54 @@ export function UsuariosPage() {
                                                 {isLoading ? <><span className="spinner-border spinner-border-sm me-2"></span>Excluindo...</> : <><i className="bi bi-trash me-2"></i>Sim, Excluir</>}
                                             </button>
                                         </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="modal-backdrop fade show"></div>
+                        </>
+                    )}
+
+                    {/* Modal Resetar Senha */}
+                    {showResetPasswordModal && selectedUsuario && (
+                        <>
+                            <div className="modal fade show d-block" tabIndex={-1}>
+                                <div className="modal-dialog modal-dialog-centered">
+                                    <div className="modal-content border-0 shadow">
+                                        <div className="modal-header bg-warning text-dark">
+                                            <h5 className="modal-title"><i className="bi bi-key me-2"></i>Resetar Senha</h5>
+                                            <button type="button" className="btn-close" onClick={() => { setShowResetPasswordModal(false); setSelectedUsuario(null) }}></button>
+                                        </div>
+                                        <form onSubmit={handleResetPasswordSubmit}>
+                                            <div className="modal-body p-4">
+                                                <p className="text-muted mb-3">Definir nova senha para <strong>{selectedUsuario.nome}</strong></p>
+                                                <div className="mb-3">
+                                                    <label className="form-label fw-medium">Nova Senha</label>
+                                                    <input
+                                                        type="password"
+                                                        className={`form-control ${resetPasswordErrors.novaSenha ? 'is-invalid' : ''}`}
+                                                        value={resetPasswordForm.novaSenha}
+                                                        onChange={(e) => setResetPasswordForm({ ...resetPasswordForm, novaSenha: e.target.value })}
+                                                    />
+                                                    {resetPasswordErrors.novaSenha && <div className="invalid-feedback">{resetPasswordErrors.novaSenha}</div>}
+                                                </div>
+                                                <div className="mb-3">
+                                                    <label className="form-label fw-medium">Confirmar Nova Senha</label>
+                                                    <input
+                                                        type="password"
+                                                        className={`form-control ${resetPasswordErrors.confirmarSenha ? 'is-invalid' : ''}`}
+                                                        value={resetPasswordForm.confirmarSenha}
+                                                        onChange={(e) => setResetPasswordForm({ ...resetPasswordForm, confirmarSenha: e.target.value })}
+                                                    />
+                                                    {resetPasswordErrors.confirmarSenha && <div className="invalid-feedback">{resetPasswordErrors.confirmarSenha}</div>}
+                                                </div>
+                                            </div>
+                                            <div className="modal-footer bg-light">
+                                                <button type="button" className="btn btn-outline-secondary" onClick={() => { setShowResetPasswordModal(false); setSelectedUsuario(null) }}>Cancelar</button>
+                                                <button type="submit" className="btn btn-warning" disabled={isResettingPassword}>
+                                                    {isResettingPassword ? <><span className="spinner-border spinner-border-sm me-2"></span>Resetando...</> : <><i className="bi bi-key me-2"></i>Resetar Senha</>}
+                                                </button>
+                                            </div>
+                                        </form>
                                     </div>
                                 </div>
                             </div>

@@ -64,13 +64,19 @@ export function Header() {
 
     const breadcrumbs = getBreadcrumbs()
 
+    const homePath = user?.role === 'SUPERADMIN' || user?.role === 'ADMIN'
+        ? '/admin/dashboard'
+        : user?.municipioId
+            ? `/municipio/${user.municipioId}/dashboard`
+            : '/admin/dashboard'
+
     return (
         <header className="main-header">
             <div className="d-flex align-items-center gap-3">
                 <nav aria-label="breadcrumb">
                     <ol className="breadcrumb mb-0 small">
                         <li className="breadcrumb-item">
-                            <a href="#" onClick={(e) => { e.preventDefault(); navigate('/admin/dashboard'); }} className="text-muted text-decoration-none">
+                            <a href="#" onClick={(e) => { e.preventDefault(); navigate(homePath); }} className="text-muted text-decoration-none">
                                 <i className="bi bi-house"></i>
                             </a>
                         </li>
@@ -80,17 +86,7 @@ export function Header() {
                                 className={`breadcrumb-item ${item.isActive ? 'active fw-medium' : ''}`}
                                 aria-current={item.isActive ? 'page' : undefined}
                             >
-                                {item.isActive ? (
-                                    item.label
-                                ) : (
-                                    <a
-                                        href="#"
-                                        onClick={(e) => { e.preventDefault(); navigate(item.path); }}
-                                        className="text-decoration-none"
-                                    >
-                                        {item.label}
-                                    </a>
-                                )}
+                                {item.label}
                             </li>
                         ))}
                     </ol>

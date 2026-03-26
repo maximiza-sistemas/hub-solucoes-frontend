@@ -243,6 +243,9 @@ export default function App() {
           <Route path="/municipio/:municipioId/turmas" element={<MunicipioTurmasPage />} />
         </Route>
 
+        {/* Redirect intermediate paths */}
+        <Route path="/admin" element={<Navigate to="/admin/municipios" replace />} />
+
         {/* Default Redirect */}
         <Route path="/" element={<LandingPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />

@@ -144,10 +144,21 @@ export function DashboardPage() {
                                                     <div className="card-body p-3">
                                                         <div className="d-flex align-items-start justify-content-between mb-3">
                                                             <div className="d-flex align-items-center gap-3">
-                                                                <div className="d-flex align-items-center justify-content-center rounded-3 bg-primary bg-opacity-10"
-                                                                    style={{ width: 48, height: 48 }}>
-                                                                    <i className="bi bi-building text-primary" style={{ fontSize: 22 }}></i>
-                                                                </div>
+                                                                {m.imageMunicipioUrl ? (
+                                                                    <div className="d-flex align-items-center justify-content-center rounded-3 bg-light"
+                                                                        style={{ width: 48, height: 48, flexShrink: 0, overflow: 'hidden' }}>
+                                                                        <img
+                                                                            src={m.imageMunicipioUrl}
+                                                                            alt={m.nome}
+                                                                            style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                                                                        />
+                                                                    </div>
+                                                                ) : (
+                                                                    <div className="d-flex align-items-center justify-content-center rounded-3 bg-primary bg-opacity-10"
+                                                                        style={{ width: 48, height: 48, flexShrink: 0 }}>
+                                                                        <i className="bi bi-building text-primary" style={{ fontSize: 22 }}></i>
+                                                                    </div>
+                                                                )}
                                                                 <div>
                                                                     <h6 className="fw-bold mb-0">{m.nome}</h6>
                                                                     <small className="text-muted">{m.uf}</small>
@@ -209,10 +220,21 @@ export function DashboardPage() {
                                             <div className="card-body p-4">
                                                 <div className="d-flex align-items-start justify-content-between mb-3">
                                                     <div className="d-flex align-items-center gap-3">
-                                                        <div className="d-flex align-items-center justify-content-center rounded-3 bg-primary bg-opacity-10"
-                                                            style={{ width: 56, height: 56 }}>
-                                                            <i className="bi bi-building text-primary" style={{ fontSize: 26 }}></i>
-                                                        </div>
+                                                        {meuMunicipio.imageMunicipioUrl ? (
+                                                            <div className="d-flex align-items-center justify-content-center rounded-3 bg-light"
+                                                                style={{ width: 56, height: 56, flexShrink: 0, overflow: 'hidden' }}>
+                                                                <img
+                                                                    src={meuMunicipio.imageMunicipioUrl}
+                                                                    alt={meuMunicipio.nome}
+                                                                    style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                                                                />
+                                                            </div>
+                                                        ) : (
+                                                            <div className="d-flex align-items-center justify-content-center rounded-3 bg-primary bg-opacity-10"
+                                                                style={{ width: 56, height: 56, flexShrink: 0 }}>
+                                                                <i className="bi bi-building text-primary" style={{ fontSize: 26 }}></i>
+                                                            </div>
+                                                        )}
                                                         <div>
                                                             <h5 className="fw-bold mb-0">{meuMunicipio.nome}</h5>
                                                             <small className="text-muted">{meuMunicipio.uf}</small>
