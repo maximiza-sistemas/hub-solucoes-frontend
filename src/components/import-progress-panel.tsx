@@ -39,16 +39,13 @@ function downloadCsv(filename: string, rows: string[][]) {
     URL.revokeObjectURL(url)
 }
 
-function exportarNaoInseridos(progress: ImportJobProgress) {
-    const rows: string[][] = [['linha', 'nome', 'cpf', 'tipo', 'motivo']]
-    for (const e of progress.linhasExistentes) {
-        rows.push([String(e.linha), e.nome, e.cpf, 'JA_CADASTRADO', 'Aluno com este CPF já cadastrado'])
-    }
+function exportarFalhas(progress: ImportJobProgress) {
+    const rows: string[][] = [['linha', 'aluno', 'motivo']]
     for (const f of progress.falhas) {
-        rows.push([String(f.linha), f.aluno, '', 'FALHA', f.motivo])
+        rows.push([String(f.linha), f.aluno, f.motivo])
     }
     const baseName = (progress.fileName || 'importacao').replace(/\.[^.]+$/, '')
-    downloadCsv(`${baseName}_nao_inseridos.csv`, rows)
+    downloadCsv(`${baseName}_falhas.csv`, rows)
 }
 
 export function ImportProgressPanel() {
@@ -149,17 +146,17 @@ export function ImportProgressPanel() {
 
                     <SummaryHeader progress={progress} maximized={maximized} showProgressBar={!isFinal} />
 
-                    {(progress.existentes + progress.erros) > 0 && (
+                    {progress.erros > 0 && (
                         <div className="mb-2">
                             <button
                                 type="button"
                                 className="btn btn-sm btn-outline-primary w-100"
-                                onClick={() => exportarNaoInseridos(progress)}
+                                onClick={() => exportarFalhas(progress)}
                                 disabled={!isFinal}
-                                title={isFinal ? 'Baixar CSV com todas as linhas que não foram cadastradas' : 'Disponível ao final da importação'}
+                                title={isFinal ? 'Baixar CSV com todas as falhas' : 'Disponível ao final da importação'}
                             >
                                 <i className="bi bi-download me-1"></i>
-                                Baixar CSV de não inseridos ({progress.existentes + progress.erros})
+                                Baixar CSV de falhas ({progress.erros})
                                 {!isFinal && <small className="ms-1 text-muted">(disponível ao final)</small>}
                             </button>
                         </div>
