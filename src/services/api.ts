@@ -10,7 +10,7 @@ import type {
     Turma,
     Role,
     PageResponse,
-    ImportResult,
+    ImportJobProgress,
 } from '@/types'
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080'
@@ -331,8 +331,17 @@ export const alunosApi = {
     delete: (id: number, token?: string | null) =>
         request<void>(`/alunos/${id}`, { method: 'DELETE', token }),
 
-    importFile: (file: File, token?: string | null) =>
-        uploadFile<ImportResult>('/alunos/import', file, 'file', token),
+    startImport: (file: File, token?: string | null) =>
+        uploadFile<{ jobId: string }>('/alunos/import', file, 'file', token),
+
+    getImportProgress: (jobId: string, token?: string | null) =>
+        request<ImportJobProgress>(`/alunos/import/${jobId}`, { token }),
+
+    getActiveImport: (token?: string | null) =>
+        request<ImportJobProgress | undefined>('/alunos/import/active', { token }),
+
+    cancelImport: (jobId: string, token?: string | null) =>
+        request<ImportJobProgress>(`/alunos/import/${jobId}/cancel`, { method: 'POST', token }),
 }
 
 // Regioes API

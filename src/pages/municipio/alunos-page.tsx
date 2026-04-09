@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { useDataStore } from '@/stores'
+import { useDataStore, useImportJobStore } from '@/stores'
 import { Pagination, PageLoading, TableLoading } from '@/components/ui'
 import { escolasApi, turmasApi } from '@/services/api'
 import { useAuthStore } from '@/stores/auth-store'
@@ -136,6 +136,14 @@ export function MunicipioAlunosPage() {
     useEffect(() => {
         if (!initialLoading) refetchAlunos()
     }, [munId, currentPage, pageSize, appliedFilters])
+
+    const importLastCompletedAt = useImportJobStore(s => s.lastCompletedAt)
+    useEffect(() => {
+        if (importLastCompletedAt && !initialLoading) {
+            refetchAlunos()
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [importLastCompletedAt])
 
     const handleApplyFilters = () => {
         setCurrentPage(0)
@@ -553,7 +561,6 @@ export function MunicipioAlunosPage() {
             <AlunoImportModal
                 isOpen={showImportModal}
                 onClose={() => setShowImportModal(false)}
-                onImportSuccess={refetchAlunos}
             />
 
             {/* Modal Excluir */}

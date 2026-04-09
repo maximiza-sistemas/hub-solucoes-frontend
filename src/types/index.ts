@@ -207,3 +207,27 @@ export interface ImportResult {
     erros: number
     falhas: ImportError[]
 }
+
+export type ImportJobStatus = 'QUEUED' | 'RUNNING' | 'COMPLETED' | 'FAILED' | 'CANCELLED'
+
+export interface AlunoImportadoResumo {
+    linha: number
+    nome: string
+    cpf: string
+}
+
+export interface ImportJobProgress {
+    id: string
+    fileName: string
+    status: ImportJobStatus
+    totalLinhas: number
+    processadas: number
+    sucesso: number
+    erros: number
+    percentual: number
+    tempoDecorridoMs: number
+    tempoEstimadoRestanteMs: number | null
+    cadastrados: AlunoImportadoResumo[]
+    falhas: ImportError[]
+    erroFatal?: string | null
+}

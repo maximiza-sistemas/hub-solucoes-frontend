@@ -1,10 +1,18 @@
+import { useEffect } from 'react'
 import { Navigate, Outlet } from 'react-router-dom'
 import { Sidebar } from './sidebar'
 import { Header } from './header'
-import { useAuthStore } from '@/stores'
+import { useAuthStore, useImportJobStore } from '@/stores'
+import { ImportProgressPanel } from '@/components/import-progress-panel'
 
 export function MainLayout() {
     const { isAuthenticated } = useAuthStore()
+
+    useEffect(() => {
+        if (isAuthenticated) {
+            useImportJobStore.getState().resumeIfActive()
+        }
+    }, [isAuthenticated])
 
     if (!isAuthenticated) {
         return <Navigate to="/login" replace />
@@ -19,6 +27,7 @@ export function MainLayout() {
                     <Outlet />
                 </main>
             </div>
+            <ImportProgressPanel />
         </div>
     )
 }
