@@ -224,10 +224,12 @@ export interface ImportJobProgress {
     processadas: number
     sucesso: number
     erros: number
+    existentes: number
     percentual: number
     tempoDecorridoMs: number
     tempoEstimadoRestanteMs: number | null
     cadastrados: AlunoImportadoResumo[]
+    linhasExistentes: AlunoImportadoResumo[]
     falhas: ImportError[]
     erroFatal?: string | null
 }
