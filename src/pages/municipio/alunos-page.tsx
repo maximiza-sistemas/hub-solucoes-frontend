@@ -330,7 +330,7 @@ export function MunicipioAlunosPage() {
                 <input type="text" className="form-control" placeholder="000.000.000-00" value={formData.cpf} onChange={(e) => setFormData({ ...formData, cpf: formatCPF(e.target.value) })} />
             </div>
             <div className="col-md-6">
-                <label className="form-label fw-medium">Matrícula <span className="text-danger">*</span></label>
+                <label className="form-label fw-medium">Matrícula</label>
                 <input type="text" className={`form-control ${formErrors.matricula ? 'is-invalid' : ''}`} placeholder="Número de matrícula" value={formData.matricula} onChange={(e) => setFormData({ ...formData, matricula: e.target.value })} />
                 {formErrors.matricula && <div className="invalid-feedback">{formErrors.matricula}</div>}
             </div>
