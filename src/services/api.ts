@@ -435,6 +435,9 @@ export const gestoresApi = {
 
 // Professores API
 export const professoresApi = {
+    listProfessores: (token?: string | null, params?: Record<string, string | number | undefined>) =>
+        request<PageResponse<Usuario>>('/usuarios/professores', { token, params: { ...params } }),
+
     listProfessoresByMunicipio: (municipioId: number, token?: string | null) =>
         request<PageResponse<Usuario>>('/usuarios/professores', { token, params: { municipioId } }),
 

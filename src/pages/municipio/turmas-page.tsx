@@ -9,7 +9,10 @@ import type { Turma, Escola } from '@/types'
 export function MunicipioTurmasPage() {
     const { municipioId } = useParams()
     const navigate = useNavigate()
+    const { user } = useAuthStore()
+    const isSuperAdmin = user?.role === 'SUPERADMIN'
     const munId = municipioId ? Number(municipioId) : undefined
+    const showMunicipioFilter = isSuperAdmin && !munId
 
     const {
         municipios = [],
@@ -61,19 +64,20 @@ export function MunicipioTurmasPage() {
     const [escolaDropdownOpen, setEscolaDropdownOpen] = useState(false)
 
     useEffect(() => {
-        const targetMunId = formData.municipioId ? Number(formData.municipioId) : munId
-        if (targetMunId) {
-            const token = useAuthStore.getState().accessToken
-            escolasApi.list(token, { municipioId: targetMunId, size: 1000 })
-                .then(res => {
-                    const content = Array.isArray(res?.content) ? res.content : Array.isArray(res) ? res : []
-                    setFormEscolas(content)
-                })
-                .catch(console.error)
-        } else {
-            setFormEscolas([])
+        const token = useAuthStore.getState().accessToken
+        const params: Record<string, any> = { size: 1000 }
+        if (isSuperAdmin) {
+            const targetMunId = formData.municipioId ? Number(formData.municipioId) : munId
+            if (!targetMunId) { setFormEscolas([]); return }
+            params.municipioId = targetMunId
         }
-    }, [formData.municipioId, munId])
+        escolasApi.list(token, params)
+            .then(res => {
+                const content = Array.isArray(res?.content) ? res.content : Array.isArray(res) ? res : []
+                setFormEscolas(content)
+            })
+            .catch(console.error)
+    }, [formData.municipioId, munId, isSuperAdmin])
 
     const filteredFormEscolas = formEscolas.filter(e =>
         e.nome.toLowerCase().includes(escolaSearch.toLowerCase())
@@ -95,7 +99,7 @@ export function MunicipioTurmasPage() {
         setIsFetching(true)
         try {
             await fetchTurmas({
-                municipioId: munId || (appliedFilters.municipioFilter ? Number(appliedFilters.municipioFilter) : undefined),
+                municipioId: munId || (isSuperAdmin && appliedFilters.municipioFilter ? Number(appliedFilters.municipioFilter) : undefined),
                 page,
                 size: pageSize,
                 nome: appliedFilters.searchTerm || undefined,
@@ -205,21 +209,15 @@ export function MunicipioTurmasPage() {
             {/* Filtros */}
             <div className="card border-0 shadow-sm mb-4">
                 <div className="card-body py-3">
-                    <div className="row g-3 align-items-end">
-                        <div className={`col-12 ${!munId ? 'col-lg-3' : 'col-lg-4'}`}>
+                    <div className="row gy-3 gx-3 align-items-end">
+                        <div className={`col-12 ${showMunicipioFilter ? 'col-lg-4' : 'col-lg-6'}`}>
                             <label className="form-label text-muted small mb-1">Busca</label>
-                            <input type="text" className="form-control" placeholder="Buscar por nome..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
-                        </div>
-                        {!munId && (
-                            <div className="col-12 col-lg-3">
-                                <label className="form-label text-muted small mb-1">Município</label>
-                                <select className="form-select" value={municipioFilter} onChange={e => setMunicipioFilter(e.target.value)}>
-                                    <option value="">Todos os municípios</option>
-                                    {(municipios || []).map(m => <option key={m.id} value={m.id}>{m.nome}</option>)}
-                                </select>
+                            <div className="input-group">
+                                <span className="input-group-text bg-white border-end-0"><i className="bi bi-search text-muted"></i></span>
+                                <input type="text" className="form-control border-start-0 rounded-start-0" placeholder="Buscar por nome..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
                             </div>
-                        )}
-                        <div className="col-6 col-lg-2">
+                        </div>
+                        <div className="col-12 col-lg-2">
                             <label className="form-label text-muted small mb-1">Turno</label>
                             <select className="form-select" value={turnoFilter} onChange={e => setTurnoFilter(e.target.value)}>
                                 <option value="">Todos</option>
@@ -230,7 +228,7 @@ export function MunicipioTurmasPage() {
                                 })}
                             </select>
                         </div>
-                        <div className="col-6 col-lg-2">
+                        <div className="col-12 col-lg-2">
                             <label className="form-label text-muted small mb-1">Série</label>
                             <select className="form-select" value={serieFilter} onChange={e => setSerieFilter(e.target.value)}>
                                 <option value="">Todas</option>
@@ -247,18 +245,26 @@ export function MunicipioTurmasPage() {
                                 {(escolas || []).map(e => <option key={e.id} value={e.id}>{e.nome}</option>)}
                             </select>
                         </div>
-                    </div>
-                    <div className="col-12 mt-3">
-                        <div className="d-flex justify-content-end align-items-center gap-2">
-                            <button className="btn btn-primary px-4" onClick={handleApplyFilters}>
-                                <i className="bi bi-search me-2"></i>Aplicar Filtros
-                            </button>
-                            <button className="btn btn-outline-secondary px-4" onClick={handleClearFilters}>
-                                <i className="bi bi-arrow-counterclockwise me-2"></i>Limpar
-                            </button>
+                        {showMunicipioFilter && (
+                            <div className="col-12 col-lg-2">
+                                <label className="form-label text-muted small mb-1">Município</label>
+                                <select className="form-select" value={municipioFilter} onChange={e => setMunicipioFilter(e.target.value)}>
+                                    <option value="">Todos os municípios</option>
+                                    {(municipios || []).map(m => <option key={m.id} value={m.id}>{m.nome}</option>)}
+                                </select>
+                            </div>
+                        )}
+                        <div className="col-12 mt-3">
+                            <div className="d-flex justify-content-end align-items-center gap-2">
+                                <button className="btn btn-primary px-4" onClick={handleApplyFilters}>
+                                    <i className="bi bi-search me-2"></i>Aplicar Filtros
+                                </button>
+                                <button className="btn btn-outline-secondary px-4" onClick={handleClearFilters}>
+                                    <i className="bi bi-arrow-counterclockwise me-2"></i>Limpar
+                                </button>
+                            </div>
                         </div>
                     </div>
-
                 </div>
             </div>
 
@@ -274,6 +280,7 @@ export function MunicipioTurmasPage() {
                                     <th>Série</th>
                                     <th>Escola</th>
                                     {!munId && <th>Município</th>}
+                                    <th className="text-center">Alunos</th>
                                     <th className="text-end px-4">Ações</th>
                                 </tr>
                             </thead>
@@ -292,6 +299,7 @@ export function MunicipioTurmasPage() {
                                         <td>{t?.serie || '-'}</td>
                                         <td>{t?.escola || escolas.find(e => e.id === t?.escolaId)?.nome || '-'}</td>
                                         {!munId && <td>{t?.municipio || municipios.find(m => m.id === t?.municipioId)?.nome || '-'}</td>}
+                                        <td className="text-center"><span className="badge bg-success text-white">{t?.totalAlunos ?? 0}</span></td>
                                         <td className="text-end px-4">
                                             <div className="btn-group btn-group-sm">
                                                 <button className="btn btn-outline-primary" onClick={() => {
@@ -306,7 +314,7 @@ export function MunicipioTurmasPage() {
                                         </td>
                                     </tr>
                                 )) : (
-                                    <tr><td colSpan={munId ? 5 : 7} className="text-center py-5 text-muted">Nenhuma turma encontrada</td></tr>
+                                    <tr><td colSpan={munId ? 6 : 8} className="text-center py-5 text-muted">Nenhuma turma encontrada</td></tr>
                                 )}
                             </tbody>
                         </table>
@@ -346,25 +354,26 @@ export function MunicipioTurmasPage() {
                                         const val = typeof s === 'string' ? s : (s as any)?.descricao || (s as any)?.nome || String(s);
                                         return <option key={val} value={val}>{val}</option>;
                                     })}</select></div>
-                                    <div className="mb-3">
-                                        <label className="form-label">Município</label>
-                                        <select className="form-select" value={formData.municipioId} onChange={e => setFormData({ ...formData, municipioId: e.target.value, escolaId: '' })} disabled={!!munId} required>
-                                            <option value="">Selecione</option>
-                                            {municipios.map(m => <option key={m.id} value={m.id}>{m.nome} - {m.uf}</option>)}
-                                        </select>
-                                    </div>
+                                    {isSuperAdmin && (
+                                        <div className="mb-3">
+                                            <label className="form-label">Município</label>
+                                            <select className="form-select" value={formData.municipioId} onChange={e => setFormData({ ...formData, municipioId: e.target.value, escolaId: '' })} disabled={!!munId} required>
+                                                <option value="">Selecione</option>
+                                                {municipios.map(m => <option key={m.id} value={m.id}>{m.nome} - {m.uf}</option>)}
+                                            </select>
+                                        </div>
+                                    )}
                                     <div className="mb-3">
                                         <label className="form-label">Escola</label>
                                         <div className="position-relative">
                                             <input
                                                 type="text"
                                                 className="form-control"
-                                                placeholder={formData.municipioId ? "Pesquisar escola..." : "Selecione um município primeiro"}
+                                                placeholder="Pesquisar escola..."
                                                 value={escolaDropdownOpen ? escolaSearch : selectedEscolaName || escolaSearch}
                                                 onChange={e => { setEscolaSearch(e.target.value); setEscolaDropdownOpen(true); if (!e.target.value) setFormData({ ...formData, escolaId: '' }) }}
-                                                onFocus={() => formData.municipioId && setEscolaDropdownOpen(true)}
+                                                onFocus={() => setEscolaDropdownOpen(true)}
                                                 onBlur={() => setTimeout(() => setEscolaDropdownOpen(false), 200)}
-                                                disabled={!formData.municipioId}
                                                 required={!formData.escolaId}
                                             />
                                             {formData.escolaId && !escolaDropdownOpen && (
@@ -372,7 +381,7 @@ export function MunicipioTurmasPage() {
                                                     <i className="bi bi-x-lg"></i>
                                                 </button>
                                             )}
-                                            {escolaDropdownOpen && formData.municipioId && (
+                                            {escolaDropdownOpen && (
                                                 <div className="border rounded shadow-sm bg-white position-absolute w-100 mt-1" style={{ maxHeight: 200, overflowY: 'auto', zIndex: 1060 }}>
                                                     {filteredFormEscolas.length > 0 ? filteredFormEscolas.map(e => (
                                                         <button type="button" key={e.id} className={`dropdown-item px-3 py-2 ${String(e.id) === formData.escolaId ? 'active' : ''}`}
@@ -380,7 +389,7 @@ export function MunicipioTurmasPage() {
                                                             {e.nome}
                                                         </button>
                                                     )) : (
-                                                        <div className="px-3 py-2 text-muted small">{formData.municipioId ? 'Nenhuma escola encontrada' : 'Selecione um município primeiro'}</div>
+                                                        <div className="px-3 py-2 text-muted small">Nenhuma escola encontrada</div>
                                                     )}
                                                 </div>
                                             )}
@@ -411,25 +420,26 @@ export function MunicipioTurmasPage() {
                                         const val = typeof s === 'string' ? s : (s as any)?.descricao || (s as any)?.nome || String(s);
                                         return <option key={val} value={val}>{val}</option>;
                                     })}</select></div>
-                                    <div className="mb-3">
-                                        <label className="form-label">Município</label>
-                                        <select className="form-select" value={formData.municipioId} onChange={e => setFormData({ ...formData, municipioId: e.target.value, escolaId: '' })} disabled={!!munId} required>
-                                            <option value="">Selecione</option>
-                                            {municipios.map(m => <option key={m.id} value={m.id}>{m.nome} - {m.uf}</option>)}
-                                        </select>
-                                    </div>
+                                    {isSuperAdmin && (
+                                        <div className="mb-3">
+                                            <label className="form-label">Município</label>
+                                            <select className="form-select" value={formData.municipioId} onChange={e => setFormData({ ...formData, municipioId: e.target.value, escolaId: '' })} disabled={!!munId} required>
+                                                <option value="">Selecione</option>
+                                                {municipios.map(m => <option key={m.id} value={m.id}>{m.nome} - {m.uf}</option>)}
+                                            </select>
+                                        </div>
+                                    )}
                                     <div className="mb-3">
                                         <label className="form-label">Escola</label>
                                         <div className="position-relative">
                                             <input
                                                 type="text"
                                                 className="form-control"
-                                                placeholder={formData.municipioId ? "Pesquisar escola..." : "Selecione um município primeiro"}
+                                                placeholder="Pesquisar escola..."
                                                 value={escolaDropdownOpen ? escolaSearch : selectedEscolaName || escolaSearch}
                                                 onChange={e => { setEscolaSearch(e.target.value); setEscolaDropdownOpen(true); if (!e.target.value) setFormData({ ...formData, escolaId: '' }) }}
-                                                onFocus={() => formData.municipioId && setEscolaDropdownOpen(true)}
+                                                onFocus={() => setEscolaDropdownOpen(true)}
                                                 onBlur={() => setTimeout(() => setEscolaDropdownOpen(false), 200)}
-                                                disabled={!formData.municipioId}
                                                 required={!formData.escolaId}
                                             />
                                             {formData.escolaId && !escolaDropdownOpen && (
@@ -437,7 +447,7 @@ export function MunicipioTurmasPage() {
                                                     <i className="bi bi-x-lg"></i>
                                                 </button>
                                             )}
-                                            {escolaDropdownOpen && formData.municipioId && (
+                                            {escolaDropdownOpen && (
                                                 <div className="border rounded shadow-sm bg-white position-absolute w-100 mt-1" style={{ maxHeight: 200, overflowY: 'auto', zIndex: 1060 }}>
                                                     {filteredFormEscolas.length > 0 ? filteredFormEscolas.map(e => (
                                                         <button type="button" key={e.id} className={`dropdown-item px-3 py-2 ${String(e.id) === formData.escolaId ? 'active' : ''}`}
@@ -445,7 +455,7 @@ export function MunicipioTurmasPage() {
                                                             {e.nome}
                                                         </button>
                                                     )) : (
-                                                        <div className="px-3 py-2 text-muted small">{formData.municipioId ? 'Nenhuma escola encontrada' : 'Selecione um município primeiro'}</div>
+                                                        <div className="px-3 py-2 text-muted small">Nenhuma escola encontrada</div>
                                                     )}
                                                 </div>
                                             )}

@@ -113,8 +113,8 @@ export function Header() {
                     </button>
                     <ul className="dropdown-menu dropdown-menu-end shadow-lg border-0" style={{ minWidth: 220 }}>
                         <li className="px-3 py-2 border-bottom">
-                            <div className="d-flex align-items-center gap-2">
-                                <div className="d-flex align-items-center justify-content-center rounded-circle bg-primary text-white"
+                            <div className="d-flex align-items-center">
+                                <div className="d-flex rounded-circle bg-primary text-white"
                                     style={{ width: 40, height: 40, fontSize: 14 }}>
                                     {user?.nome?.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase()}
                                 </div>

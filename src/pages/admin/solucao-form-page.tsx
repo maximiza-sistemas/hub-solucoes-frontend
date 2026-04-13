@@ -5,16 +5,7 @@ import { z } from 'zod'
 import { ArrowLeft, Save, Loader2 } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { Button, Input, Card, CardHeader, CardTitle, CardContent, Select } from '@/components/ui'
-import { useDataStore } from '@/stores'
-
-const solucaoSchema = z.object({
-    nome: z.string().min(3, 'Nome deve ter no mínimo 3 caracteres'),
-    descricao: z.string().min(10, 'Descrição deve ter no mínimo 10 caracteres'),
-    link: z.string().url('URL inválida').optional().or(z.literal('')),
-    municipioId: z.number({ message: 'Selecione um município' }).min(1, 'Selecione um município'),
-})
-
-type SolucaoFormData = z.infer<typeof solucaoSchema>
+import { useDataStore, useAuthStore } from '@/stores'
 
 export function SolucaoFormPage() {
     const navigate = useNavigate()
@@ -22,14 +13,28 @@ export function SolucaoFormPage() {
     const isEditing = !!id
     const [isLoading, setIsLoading] = useState(false)
 
+    const { user } = useAuthStore()
+    const isSuperAdmin = user?.role === 'SUPERADMIN'
+
+    const solucaoSchema = z.object({
+        nome: z.string().min(3, 'Nome deve ter no mínimo 3 caracteres'),
+        descricao: z.string().min(10, 'Descrição deve ter no mínimo 10 caracteres'),
+        link: z.string().url('URL inválida').optional().or(z.literal('')),
+        municipioId: isSuperAdmin
+            ? z.number({ message: 'Selecione um município' }).min(1, 'Selecione um município')
+            : z.number().optional(),
+    })
+
+    type SolucaoFormData = z.infer<typeof solucaoSchema>
+
     const { solucoes, addSolucao, updateSolucao, municipios, fetchMunicipios } = useDataStore()
     const solucao = solucoes.find((s) => s.id === Number(id))
 
     useEffect(() => {
-        if (municipios.length === 0) {
+        if (isSuperAdmin && municipios.length === 0) {
             fetchMunicipios()
         }
-    }, [municipios.length, fetchMunicipios])
+    }, [isSuperAdmin, municipios.length, fetchMunicipios])
 
     const {
         register,
@@ -57,6 +62,7 @@ export function SolucaoFormPage() {
         const solucaoData = {
             ...data,
             link: data.link || undefined,
+            municipioId: isSuperAdmin ? data.municipioId : undefined,
         }
 
         try {
@@ -99,17 +105,19 @@ export function SolucaoFormPage() {
                             {...register('nome')}
                         />
 
-                        <Select
-                            label="Município"
-                            placeholder="Selecione um município"
-                            options={municipios.map((m) => ({
-                                value: String(m.id),
-                                label: m.nome,
-                            }))}
-                            error={errors.municipioId?.message}
-                            disabled={isLoading}
-                            {...register('municipioId', { valueAsNumber: true })}
-                        />
+                        {isSuperAdmin && (
+                            <Select
+                                label="Município"
+                                placeholder="Selecione um município"
+                                options={municipios.map((m) => ({
+                                    value: String(m.id),
+                                    label: m.nome,
+                                }))}
+                                error={errors.municipioId?.message}
+                                disabled={isLoading}
+                                {...register('municipioId', { valueAsNumber: true })}
+                            />
+                        )}
 
                         <div>
                             <label className="block text-sm font-medium text-slate-700 mb-1.5">

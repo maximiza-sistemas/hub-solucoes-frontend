@@ -1,15 +1,18 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { useDataStore } from '@/stores'
+import { useDataStore, useAuthStore } from '@/stores'
 import { Pagination, PageLoading, TableLoading } from '@/components/ui'
 import type { Grupo } from '@/types'
 
 export function MunicipioGruposPage() {
     const { municipioId } = useParams()
     const navigate = useNavigate()
+    const { user } = useAuthStore()
+    const isSuperAdmin = user?.role === 'SUPERADMIN'
     const { municipios, grupos, pagination, fetchMunicipios, fetchGrupos, addGrupo, updateGrupo, deleteGrupo } = useDataStore()
 
     const munId = municipioId ? Number(municipioId) : undefined
+    const showMunicipioFilter = isSuperAdmin && !munId
     const [currentPage, setCurrentPage] = useState(0)
     const [pageSize, setPageSize] = useState(10)
     const [searchTerm, setSearchTerm] = useState('')
@@ -41,7 +44,7 @@ export function MunicipioGruposPage() {
         setIsFetching(true)
         try {
             return await fetchGrupos({
-                municipioId: munId || (appliedFilters.municipioFilter ? Number(appliedFilters.municipioFilter) : undefined),
+                municipioId: munId || (isSuperAdmin && appliedFilters.municipioFilter ? Number(appliedFilters.municipioFilter) : undefined),
                 page: currentPage,
                 size: pageSize,
                 nome: appliedFilters.searchTerm || undefined,
@@ -57,7 +60,7 @@ export function MunicipioGruposPage() {
 
     const handleApplyFilters = () => {
         setCurrentPage(0)
-        setAppliedFilters({ searchTerm, municipioFilter })
+        setAppliedFilters({ searchTerm, municipioFilter: showMunicipioFilter ? municipioFilter : '' })
     }
 
     const handleClearFilters = () => {
@@ -138,14 +141,14 @@ export function MunicipioGruposPage() {
             <div className="card border-0 shadow-sm mb-4">
                 <div className="card-body py-3">
                     <div className="row g-3 align-items-end">
-                        <div className={`col-12 ${!munId ? 'col-lg-6' : ''}`}>
+                        <div className={`col-12 ${showMunicipioFilter ? 'col-lg-6' : 'col-lg-12'}`}>
                             <label className="form-label text-muted small mb-1">Busca</label>
                             <div className="input-group">
                                 <span className="input-group-text bg-white"><i className="bi bi-search"></i></span>
                                 <input type="text" className="form-control" placeholder="Buscar grupo..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
                             </div>
                         </div>
-                        {!munId && (
+                        {showMunicipioFilter && (
                             <div className="col-12 col-lg-6">
                                 <label className="form-label text-muted small mb-1">Município</label>
                                 <select className="form-select" value={municipioFilter} onChange={e => setMunicipioFilter(e.target.value)}>
@@ -232,13 +235,15 @@ export function MunicipioGruposPage() {
                 <><div className="modal fade show d-block" tabIndex={-1}><div className="modal-dialog modal-dialog-centered"><div className="modal-content border-0 shadow">
                     <div className="modal-header bg-primary text-white"><h5 className="modal-title"><i className="bi bi-plus-circle me-2"></i>Novo Grupo</h5><button type="button" className="btn-close btn-close-white" onClick={() => setShowAddModal(false)}></button></div>
                     <form onSubmit={handleAddSubmit}><div className="modal-body p-4">
-                        <div className="mb-3">
-                            <label className="form-label fw-medium">Município <span className="text-danger">*</span></label>
-                            <select className="form-select" value={formData.municipioId} onChange={(e) => setFormData({ ...formData, municipioId: e.target.value })} disabled={!!munId} required>
-                                <option value="">Selecione um município</option>
-                                {municipios.map(m => <option key={m.id} value={m.id}>{m.nome} - {m.uf}</option>)}
-                            </select>
-                        </div>
+                        {isSuperAdmin && (
+                            <div className="mb-3">
+                                <label className="form-label fw-medium">Município <span className="text-danger">*</span></label>
+                                <select className="form-select" value={formData.municipioId} onChange={(e) => setFormData({ ...formData, municipioId: e.target.value })} disabled={!!munId} required>
+                                    <option value="">Selecione um município</option>
+                                    {municipios.map(m => <option key={m.id} value={m.id}>{m.nome} - {m.uf}</option>)}
+                                </select>
+                            </div>
+                        )}
                         <div>
                             <label className="form-label fw-medium">Nome <span className="text-danger">*</span></label>
                             <input type="text" className={`form-control ${formErrors.nome ? 'is-invalid' : ''}`} placeholder="Nome do grupo" value={formData.nome} onChange={(e) => setFormData({ ...formData, nome: e.target.value })} />
@@ -257,13 +262,15 @@ export function MunicipioGruposPage() {
                 <><div className="modal fade show d-block" tabIndex={-1}><div className="modal-dialog modal-dialog-centered"><div className="modal-content border-0 shadow">
                     <div className="modal-header bg-primary text-white"><h5 className="modal-title"><i className="bi bi-pencil me-2"></i>Editar Grupo</h5><button type="button" className="btn-close btn-close-white" onClick={() => { setShowEditModal(false); setSelectedGrupo(null) }}></button></div>
                     <form onSubmit={handleEditSubmit}><div className="modal-body p-4">
-                        <div className="mb-3">
-                            <label className="form-label fw-medium">Município <span className="text-danger">*</span></label>
-                            <select className="form-select" value={formData.municipioId} onChange={(e) => setFormData({ ...formData, municipioId: e.target.value })} disabled={!!munId} required>
-                                <option value="">Selecione um município</option>
-                                {municipios.map(m => <option key={m.id} value={m.id}>{m.nome} - {m.uf}</option>)}
-                            </select>
-                        </div>
+                        {isSuperAdmin && (
+                            <div className="mb-3">
+                                <label className="form-label fw-medium">Município <span className="text-danger">*</span></label>
+                                <select className="form-select" value={formData.municipioId} onChange={(e) => setFormData({ ...formData, municipioId: e.target.value })} disabled={!!munId} required>
+                                    <option value="">Selecione um município</option>
+                                    {municipios.map(m => <option key={m.id} value={m.id}>{m.nome} - {m.uf}</option>)}
+                                </select>
+                            </div>
+                        )}
                         <div>
                             <label className="form-label fw-medium">Nome <span className="text-danger">*</span></label>
                             <input type="text" className={`form-control ${formErrors.nome ? 'is-invalid' : ''}`} value={formData.nome} onChange={(e) => setFormData({ ...formData, nome: e.target.value })} />

@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { useDataStore } from '@/stores'
+import { useDataStore, useAuthStore } from '@/stores'
 import { Pagination, PageLoading, TableLoading } from '@/components/ui'
 import type { Usuario } from '@/types'
 
 export function MunicipioUsuariosPage() {
     const { municipioId } = useParams()
     const navigate = useNavigate()
+    const { user } = useAuthStore()
+    const isSuperAdmin = user?.role === 'SUPERADMIN'
     const {
         municipios,
         usuarios,
@@ -102,6 +104,13 @@ export function MunicipioUsuariosPage() {
         }
     }
 
+    const isSuperAdminRole = (role: { nome?: string; descricao?: string }) => {
+        const normalized = `${role.nome || ''} ${role.descricao || ''}`.toUpperCase()
+        return normalized.includes('SUPERADMIN')
+    }
+
+    const availableRolesForCreate = isSuperAdmin ? roles : roles.filter((role) => !isSuperAdminRole(role))
+
     const validateForm = (isAdd: boolean) => {
         const errors: Record<string, string> = {}
         if (!formData.nome || formData.nome.length < 3) errors.nome = 'Nome deve ter no mínimo 3 caracteres'
@@ -132,6 +141,19 @@ export function MunicipioUsuariosPage() {
     const handleAddSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
         if (!validateForm(true)) return
+
+        const selectedRole = formData.tipoUsuarioId
+            ? roles.find((role) => role.id === Number(formData.tipoUsuarioId))
+            : undefined
+
+        if (!isSuperAdmin && selectedRole && isSuperAdminRole(selectedRole)) {
+            setFormErrors((prev) => ({
+                ...prev,
+                tipoUsuarioId: 'Somente SUPERADMIN pode cadastrar usuário SUPERADMIN'
+            }))
+            return
+        }
+
         setIsLoading(true)
         try {
             await addUsuario({
@@ -383,10 +405,18 @@ export function MunicipioUsuariosPage() {
                         </div>
                         <div className="col-md-6">
                             <label className="form-label fw-medium">Tipo de Usuário</label>
-                            <select className="form-select" value={formData.tipoUsuarioId} onChange={(e) => setFormData({ ...formData, tipoUsuarioId: e.target.value })}>
+                            <select
+                                className={`form-select ${formErrors.tipoUsuarioId ? 'is-invalid' : ''}`}
+                                value={formData.tipoUsuarioId}
+                                onChange={(e) => {
+                                    setFormData({ ...formData, tipoUsuarioId: e.target.value })
+                                    setFormErrors((prev) => ({ ...prev, tipoUsuarioId: '' }))
+                                }}
+                            >
                                 <option value="">Selecione</option>
-                                {roles.map(role => <option key={role.id} value={role.id}>{role.nome || role.descricao}</option>)}
+                                {availableRolesForCreate.map(role => <option key={role.id} value={role.id}>{role.nome || role.descricao}</option>)}
                             </select>
+                            {formErrors.tipoUsuarioId && <div className="invalid-feedback">{formErrors.tipoUsuarioId}</div>}
                         </div>
                     </div></div>
                         <div className="modal-footer bg-light">

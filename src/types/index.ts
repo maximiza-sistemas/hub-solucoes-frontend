@@ -82,6 +82,8 @@ export interface Escola {
     regiao?: string
     municipio?: string
     municipioId: number
+    totalTurmas: number
+    totalAlunos: number
 }
 
 // User Types
@@ -119,6 +121,7 @@ export interface Turma {
     escola?: string
     municipioId: number
     municipio?: string
+    totalAlunos: number
 }
 
 export interface Role {

@@ -23,6 +23,7 @@ export function UsuariosPage() {
     } = useDataStore()
     const { accessToken, user } = useAuthStore()
     const isSuperAdmin = user?.role === 'SUPERADMIN'
+    const showMunicipioFilter = isSuperAdmin
     const isGestor = user?.role === 'GESTOR'
 
     const [nomeTerm, setNomeTerm] = useState('')
@@ -54,6 +55,7 @@ export function UsuariosPage() {
     const [initialLoading, setInitialLoading] = useState(true)
     const [isFetching, setIsFetching] = useState(false)
 
+    const [showPassword, setShowPassword] = useState(false)
     const [showResetPasswordModal, setShowResetPasswordModal] = useState(false)
     const [resetPasswordForm, setResetPasswordForm] = useState({ novaSenha: '', confirmarSenha: '' })
     const [resetPasswordErrors, setResetPasswordErrors] = useState<Record<string, string>>({})
@@ -105,7 +107,7 @@ export function UsuariosPage() {
                 nome: nomeParam || undefined,
                 email: emailParam || undefined,
                 ativo: ativoParam === '' ? undefined : ativoParam,
-                municipioId: municipioParam ? Number(municipioParam) : undefined,
+                municipioId: showMunicipioFilter && municipioParam ? Number(municipioParam) : undefined,
             })
         } finally {
             setIsFetching(false)
@@ -153,9 +155,17 @@ export function UsuariosPage() {
         return badges[tipo] || 'bg-secondary'
     }
 
+    const isSuperAdminRole = (role: Role) => {
+        const normalized = `${role.nome || ''} ${role.descricao || ''}`.toUpperCase()
+        return normalized.includes('SUPERADMIN')
+    }
+
+    const availableRolesForCreate = isSuperAdmin ? roles : roles.filter((role) => !isSuperAdminRole(role))
+
     const resetForm = () => {
         setFormData({ nome: '', email: '', tipoUsuarioId: '', municipioId: '', password: '' })
         setFormErrors({})
+        setShowPassword(false)
     }
 
     const handleOpenModal = () => { resetForm(); setShowModal(true) }
@@ -194,13 +204,25 @@ export function UsuariosPage() {
         e.preventDefault()
         if (!validateForm()) return
 
+        const selectedRole = formData.tipoUsuarioId
+            ? roles.find((role) => role.id === Number(formData.tipoUsuarioId))
+            : undefined
+
+        if (!isSuperAdmin && selectedRole && isSuperAdminRole(selectedRole)) {
+            setFormErrors((prev) => ({
+                ...prev,
+                tipoUsuarioId: 'Somente SUPERADMIN pode cadastrar usuário SUPERADMIN'
+            }))
+            return
+        }
+
         setIsLoading(true)
         try {
             await addUsuario({
                 nome: formData.nome,
                 email: formData.email,
                 tipoUsuarioId: formData.tipoUsuarioId ? Number(formData.tipoUsuarioId) : undefined,
-                municipioId: formData.municipioId ? Number(formData.municipioId) : undefined,
+                municipioId: isSuperAdmin && formData.municipioId ? Number(formData.municipioId) : undefined,
                 password: formData.password || undefined,
             })
             await refetchUsuarios()
@@ -222,7 +244,7 @@ export function UsuariosPage() {
                 nome: formData.nome,
                 email: formData.email,
                 tipoUsuarioId: formData.tipoUsuarioId ? Number(formData.tipoUsuarioId) : undefined,
-                municipioId: formData.municipioId ? Number(formData.municipioId) : undefined,
+                municipioId: isSuperAdmin && formData.municipioId ? Number(formData.municipioId) : undefined,
             })
             await refetchUsuarios()
             setShowEditModal(false)
@@ -424,14 +446,14 @@ export function UsuariosPage() {
                     <div className="card border-0 shadow-sm mb-4">
                         <div className="card-body py-3">
                             <div className="row gy-3 gx-3 align-items-end">
-                                <div className="col-12 col-lg-5">
+                                <div className={`col-12 ${showMunicipioFilter ? 'col-lg-5' : 'col-lg-6'}`}>
                                     <label className="form-label text-muted small mb-1">Nome</label>
                                     <div className="input-group">
                                         <span className="input-group-text bg-white border-end-0"><i className="bi bi-search text-muted"></i></span>
                                         <input type="text" className="form-control border-start-0 rounded-start-0" placeholder="Buscar por nome..." value={nomeTerm} onChange={(e) => setNomeTerm(e.target.value)} />
                                     </div>
                                 </div>
-                                <div className="col-12 col-lg-3">
+                                <div className={`col-12 ${showMunicipioFilter ? 'col-lg-3' : 'col-lg-4'}`}>
                                     <label className="form-label text-muted small mb-1">Email</label>
                                     <div className="input-group">
                                         <span className="input-group-text bg-white border-end-0"><i className="bi bi-envelope text-muted"></i></span>
@@ -446,19 +468,21 @@ export function UsuariosPage() {
                                         <option value="false">Inativos</option>
                                     </select>
                                 </div>
-                                <div className="col-6 col-lg-2">
-                                    <label className="form-label text-muted small mb-1">Município</label>
-                                    <select className="form-select" value={municipioFilter} onChange={(e) => setMunicipioFilter(e.target.value)}>
-                                        <option value="">Todos</option>
-                                        {municipios.map(m => (
-                                            <option key={m.id} value={m.id}>{m.nome}</option>
-                                        ))}
-                                    </select>
-                                </div>
+                                {showMunicipioFilter && (
+                                    <div className="col-6 col-lg-2">
+                                        <label className="form-label text-muted small mb-1">Município</label>
+                                        <select className="form-select" value={municipioFilter} onChange={(e) => setMunicipioFilter(e.target.value)}>
+                                            <option value="">Todos</option>
+                                            {municipios.map(m => (
+                                                <option key={m.id} value={m.id}>{m.nome}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                )}
                                 <div className="col-12 d-flex justify-content-end">
                                     <label className="form-label text-muted small mb-1">&nbsp;</label>
                                     <div className="d-flex justify-content-end gap-2">
-                                        <button className="btn btn-primary" onClick={() => { setCurrentPage(0); setDebouncedNome(nomeTerm); setDebouncedEmail(emailTerm); refetchUsuarios(0, { nome: nomeTerm, email: emailTerm, ativo: ativoFilter, municipio: municipioFilter }) }}>
+                                        <button className="btn btn-primary" onClick={() => { setCurrentPage(0); setDebouncedNome(nomeTerm); setDebouncedEmail(emailTerm); refetchUsuarios(0, { nome: nomeTerm, email: emailTerm, ativo: ativoFilter, municipio: showMunicipioFilter ? municipioFilter : '' }) }}>
                                             <i className="bi bi-search me-1"></i>Aplicar
                                         </button>
                                         <button className="btn btn-outline-secondary" onClick={() => {
@@ -599,26 +623,41 @@ export function UsuariosPage() {
                                                     </div>
                                                     <div className="col-md-6">
                                                         <label className="form-label fw-medium">Senha</label>
-                                                        <input type="password" className="form-control" value={formData.password} onChange={(e) => setFormData({ ...formData, password: e.target.value })} />
+                                                        <div className="input-group">
+                                                            <input type={showPassword ? 'text' : 'password'} className="form-control" value={formData.password} onChange={(e) => setFormData({ ...formData, password: e.target.value })} />
+                                                            <button type="button" className="btn btn-outline-secondary" onClick={() => setShowPassword(!showPassword)} tabIndex={-1}>
+                                                                <i className={`bi ${showPassword ? 'bi-eye-slash' : 'bi-eye'}`}></i>
+                                                            </button>
+                                                        </div>
                                                     </div>
                                                     <div className="col-md-6">
                                                         <label className="form-label fw-medium">Tipo de Usuário</label>
-                                                        <select className="form-select" value={formData.tipoUsuarioId} onChange={(e) => setFormData({ ...formData, tipoUsuarioId: e.target.value })}>
+                                                        <select
+                                                            className={`form-select ${formErrors.tipoUsuarioId ? 'is-invalid' : ''}`}
+                                                            value={formData.tipoUsuarioId}
+                                                            onChange={(e) => {
+                                                                setFormData({ ...formData, tipoUsuarioId: e.target.value })
+                                                                setFormErrors((prev) => ({ ...prev, tipoUsuarioId: '' }))
+                                                            }}
+                                                        >
                                                             <option value="">Selecione</option>
-                                                            {roles.map(r => (
+                                                            {availableRolesForCreate.map(r => (
                                                                 <option key={r.id} value={r.id}>{r.descricao || r.nome}</option>
                                                             ))}
                                                         </select>
+                                                        {formErrors.tipoUsuarioId && <div className="invalid-feedback">{formErrors.tipoUsuarioId}</div>}
                                                     </div>
-                                                    <div className="col-md-6">
-                                                        <label className="form-label fw-medium">Município</label>
-                                                        <select className="form-select" value={formData.municipioId} onChange={(e) => setFormData({ ...formData, municipioId: e.target.value })}>
-                                                            <option value="">Nenhum</option>
-                                                            {municipios.map(m => (
-                                                                <option key={m.id} value={m.id}>{m.nome}</option>
-                                                            ))}
-                                                        </select>
-                                                    </div>
+                                                    {isSuperAdmin && (
+                                                        <div className="col-md-6">
+                                                            <label className="form-label fw-medium">Município</label>
+                                                            <select className="form-select" value={formData.municipioId} onChange={(e) => setFormData({ ...formData, municipioId: e.target.value })}>
+                                                                <option value="">Nenhum</option>
+                                                                {municipios.map(m => (
+                                                                    <option key={m.id} value={m.id}>{m.nome}</option>
+                                                                ))}
+                                                            </select>
+                                                        </div>
+                                                    )}
                                                 </div>
                                             </div>
                                             <div className="modal-footer bg-light">
@@ -667,15 +706,17 @@ export function UsuariosPage() {
                                                             ))}
                                                         </select>
                                                     </div>
-                                                    <div className="col-md-6">
-                                                        <label className="form-label fw-medium">Município</label>
-                                                        <select className="form-select" value={formData.municipioId} onChange={(e) => setFormData({ ...formData, municipioId: e.target.value })}>
-                                                            <option value="">Nenhum</option>
-                                                            {municipios.map(m => (
-                                                                <option key={m.id} value={m.id}>{m.nome}</option>
-                                                            ))}
-                                                        </select>
-                                                    </div>
+                                                    {isSuperAdmin && (
+                                                        <div className="col-md-6">
+                                                            <label className="form-label fw-medium">Município</label>
+                                                            <select className="form-select" value={formData.municipioId} onChange={(e) => setFormData({ ...formData, municipioId: e.target.value })}>
+                                                                <option value="">Nenhum</option>
+                                                                {municipios.map(m => (
+                                                                    <option key={m.id} value={m.id}>{m.nome}</option>
+                                                                ))}
+                                                            </select>
+                                                        </div>
+                                                    )}
                                                 </div>
                                             </div>
                                             <div className="modal-footer bg-light">

@@ -24,6 +24,8 @@ function parseDateToInput(dateStr: string): string {
 export function MunicipioAlunosPage() {
     const { municipioId } = useParams()
     const navigate = useNavigate()
+    const { user } = useAuthStore()
+    const isSuperAdmin = user?.role === 'SUPERADMIN'
     const {
         municipios,
         alunos,
@@ -40,6 +42,7 @@ export function MunicipioAlunosPage() {
     } = useDataStore()
 
     const munId = municipioId ? Number(municipioId) : undefined
+    const showMunicipioFilter = isSuperAdmin && !munId
 
     const [nomeTerm, setNomeTerm] = useState('')
     const [matriculaTerm, setMatriculaTerm] = useState('')
@@ -82,26 +85,26 @@ export function MunicipioAlunosPage() {
     const [formTurmas, setFormTurmas] = useState<Turma[]>([])
 
     useEffect(() => {
-        const targetMunId = formData.municipioId ? Number(formData.municipioId) : munId
-        if (targetMunId) {
-            const token = useAuthStore.getState().accessToken
-            escolasApi.list(token, { municipioId: targetMunId, size: 1000 })
-                .then(res => {
-                    const content = Array.isArray(res?.content) ? res.content : Array.isArray(res) ? res : []
-                    setFormEscolas(content)
-                })
-                .catch(console.error)
-            turmasApi.list(token, { municipioId: targetMunId, size: 1000 })
-                .then(res => {
-                    const content = Array.isArray(res?.content) ? res.content : Array.isArray(res) ? res : []
-                    setFormTurmas(content)
-                })
-                .catch(console.error)
-        } else {
-            setFormEscolas([])
-            setFormTurmas([])
+        const token = useAuthStore.getState().accessToken
+        const params: Record<string, any> = { size: 1000 }
+        if (isSuperAdmin) {
+            const targetMunId = formData.municipioId ? Number(formData.municipioId) : munId
+            if (!targetMunId) { setFormEscolas([]); setFormTurmas([]); return }
+            params.municipioId = targetMunId
         }
-    }, [formData.municipioId, munId])
+        escolasApi.list(token, params)
+            .then(res => {
+                const content = Array.isArray(res?.content) ? res.content : Array.isArray(res) ? res : []
+                setFormEscolas(content)
+            })
+            .catch(console.error)
+        turmasApi.list(token, params)
+            .then(res => {
+                const content = Array.isArray(res?.content) ? res.content : Array.isArray(res) ? res : []
+                setFormTurmas(content)
+            })
+            .catch(console.error)
+    }, [formData.municipioId, munId, isSuperAdmin])
 
     useEffect(() => {
         Promise.all([
@@ -119,15 +122,15 @@ export function MunicipioAlunosPage() {
         setIsFetching(true)
         try {
             return await fetchAlunos({
-            municipioId: munId || (appliedFilters.municipioId ? Number(appliedFilters.municipioId) : undefined),
-            page: currentPage,
-            size: pageSize,
-            nome: appliedFilters.nome || undefined,
-            matricula: appliedFilters.matricula || undefined,
-            cpf: appliedFilters.cpf || undefined,
-            turmaId: appliedFilters.turmaId ? Number(appliedFilters.turmaId) : undefined,
-            escolaId: appliedFilters.escolaId ? Number(appliedFilters.escolaId) : undefined,
-        })
+                municipioId: munId || (isSuperAdmin && appliedFilters.municipioId ? Number(appliedFilters.municipioId) : undefined),
+                page: currentPage,
+                size: pageSize,
+                nome: appliedFilters.nome || undefined,
+                matricula: appliedFilters.matricula || undefined,
+                cpf: appliedFilters.cpf || undefined,
+                turmaId: appliedFilters.turmaId ? Number(appliedFilters.turmaId) : undefined,
+                escolaId: appliedFilters.escolaId ? Number(appliedFilters.escolaId) : undefined,
+            })
         } finally {
             setIsFetching(false)
         }
@@ -153,7 +156,7 @@ export function MunicipioAlunosPage() {
             cpf: cpfTerm,
             turmaId: turmaFilter,
             escolaId: escolaFilter,
-            municipioId: municipioFilter
+            municipioId: showMunicipioFilter ? municipioFilter : ''
         })
     }
 
@@ -334,25 +337,27 @@ export function MunicipioAlunosPage() {
                 <input type="text" className={`form-control ${formErrors.matricula ? 'is-invalid' : ''}`} placeholder="Número de matrícula" value={formData.matricula} onChange={(e) => setFormData({ ...formData, matricula: e.target.value })} />
                 {formErrors.matricula && <div className="invalid-feedback">{formErrors.matricula}</div>}
             </div>
-            <div className="col-md-12">
-                <label className="form-label fw-medium">Município <span className="text-danger">*</span></label>
-                <select className="form-select" value={formData.municipioId} onChange={(e) => setFormData({ ...formData, municipioId: e.target.value, escolaId: '', turmaId: '' })} disabled={!!munId} required>
-                    <option value="">Selecione um município</option>
-                    {municipios.map(m => <option key={m.id} value={m.id}>{m.nome} - {m.uf}</option>)}
-                </select>
-            </div>
+            {isSuperAdmin && (
+                <div className="col-md-12">
+                    <label className="form-label fw-medium">Município <span className="text-danger">*</span></label>
+                    <select className="form-select" value={formData.municipioId} onChange={(e) => setFormData({ ...formData, municipioId: e.target.value, escolaId: '', turmaId: '' })} disabled={!!munId} required>
+                        <option value="">Selecione um município</option>
+                        {municipios.map(m => <option key={m.id} value={m.id}>{m.nome} - {m.uf}</option>)}
+                    </select>
+                </div>
+            )}
             <div className="col-md-6">
                 <label className="form-label fw-medium">Escola <span className="text-danger">*</span></label>
-                <select className={`form-select ${formErrors.escolaId ? 'is-invalid' : ''}`} value={formData.escolaId} onChange={(e) => setFormData({ ...formData, escolaId: e.target.value, turmaId: '' })} disabled={!formData.municipioId}>
-                    <option value="">{formData.municipioId ? 'Selecione uma escola' : 'Selecione um município primeiro'}</option>
+                <select className={`form-select ${formErrors.escolaId ? 'is-invalid' : ''}`} value={formData.escolaId} onChange={(e) => setFormData({ ...formData, escolaId: e.target.value, turmaId: '' })}>
+                    <option value="">Selecione uma escola</option>
                     {formEscolas.map(escola => <option key={escola.id} value={escola.id}>{escola.nome}</option>)}
                 </select>
                 {formErrors.escolaId && <div className="invalid-feedback">{formErrors.escolaId}</div>}
             </div>
             <div className="col-md-6">
                 <label className="form-label fw-medium">Turma <span className="text-danger">*</span></label>
-                <select className={`form-select ${formErrors.turmaId ? 'is-invalid' : ''}`} value={formData.turmaId} onChange={(e) => setFormData({ ...formData, turmaId: e.target.value })} disabled={!formData.municipioId}>
-                    <option value="">{formData.municipioId ? 'Selecione uma turma' : 'Selecione um município primeiro'}</option>
+                <select className={`form-select ${formErrors.turmaId ? 'is-invalid' : ''}`} value={formData.turmaId} onChange={(e) => setFormData({ ...formData, turmaId: e.target.value })}>
+                    <option value="">Selecione uma turma</option>
                     {(formData.escolaId ? formTurmas.filter(t => String(t.escolaId) === formData.escolaId) : formTurmas).map(turma => <option key={turma.id} value={turma.id}>{turma.nome} - {turma.serie}</option>)}
                 </select>
                 {formErrors.turmaId && <div className="invalid-feedback">{formErrors.turmaId}</div>}
@@ -406,7 +411,7 @@ export function MunicipioAlunosPage() {
                             <label className="form-label text-muted small mb-1">CPF</label>
                             <input type="text" className="form-control" placeholder="000.000.000-00" value={cpfTerm} onChange={e => setCpfTerm(formatCPF(e.target.value))} />
                         </div>
-                        {!munId && (
+                        {showMunicipioFilter && (
                             <div className="col-12 col-lg-4">
                                 <label className="form-label text-muted small mb-1">Município</label>
                                 <select className="form-select" value={municipioFilter} onChange={e => setMunicipioFilter(e.target.value)}>
@@ -415,14 +420,14 @@ export function MunicipioAlunosPage() {
                                 </select>
                             </div>
                         )}
-                        <div className={`col-12 ${munId ? 'col-lg-2' : 'col-lg-3'}`}>
+                        <div className={`col-12 ${showMunicipioFilter ? 'col-lg-3' : 'col-lg-2'}`}>
                             <label className="form-label text-muted small mb-1">Escola</label>
                             <select className="form-select" value={escolaFilter} onChange={e => { setEscolaFilter(e.target.value); setTurmaFilter('') }}>
                                 <option value="">Todas</option>
                                 {(escolas || []).map(e => <option key={e.id} value={e.id}>{e.nome}</option>)}
                             </select>
                         </div>
-                        <div className={`col-12 ${munId ? 'col-lg-2' : 'col-lg-3'}`}>
+                        <div className={`col-12 ${showMunicipioFilter ? 'col-lg-3' : 'col-lg-2'}`}>
                             <label className="form-label text-muted small mb-1">Turma</label>
                             <select className="form-select" value={turmaFilter} onChange={e => setTurmaFilter(e.target.value)} disabled={!escolaFilter}>
                                 <option value="">{escolaFilter ? 'Todas' : 'Selecione uma escola'}</option>

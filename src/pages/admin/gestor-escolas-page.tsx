@@ -8,6 +8,7 @@ import { toast } from 'sonner'
 
 export function GestorEscolasPage() {
     const { accessToken, user } = useAuthStore()
+    const isSuperAdmin = user?.role === 'SUPERADMIN'
 
     if (user?.role === 'GESTOR') {
         return <Navigate to="/admin/dashboard" replace />
@@ -46,13 +47,21 @@ export function GestorEscolasPage() {
 
     // Load municipios on mount
     useEffect(() => {
-        municipiosApi.list(accessToken)
-            .then(r => setMunicipios(r.content))
-            .finally(() => setInitialLoading(false))
+        const promises: Promise<any>[] = []
+        if (isSuperAdmin) {
+            promises.push(municipiosApi.list(accessToken).then(r => setMunicipios(r.content)))
+        } else {
+            promises.push(
+                gestoresApi.listGestores(accessToken).then(r => setGestores(r.content)).catch(() => {}),
+                escolasApi.list(accessToken).then(r => setEscolasFiltro(r.content)).catch(() => {})
+            )
+        }
+        Promise.all(promises).finally(() => setInitialLoading(false))
     }, [])
 
-    // Cascading: municipio -> gestores + escolas
+    // Cascading: municipio -> gestores + escolas (only for SUPERADMIN)
     useEffect(() => {
+        if (!isSuperAdmin) return
         if (filterMunicipioId) {
             const munId = Number(filterMunicipioId)
             gestoresApi.listGestoresByMunicipio(munId, accessToken).then(r => setGestores(r.content))
@@ -209,26 +218,28 @@ export function GestorEscolasPage() {
             <div className="card border-0 shadow-sm mb-4">
                 <div className="card-body py-3">
                     <div className="row gy-3 gx-3 align-items-end">
-                        <div className="col-12 col-lg-3">
-                            <label className="form-label text-muted small mb-1">Municipio</label>
-                            <select
-                                className="form-select"
-                                value={filterMunicipioId}
-                                onChange={(e) => { setFilterMunicipioId(e.target.value); setFilterGestorId(''); setFilterEscolaId('') }}
-                            >
-                                <option value="">Selecione um municipio...</option>
-                                {municipios.map(m => (
-                                    <option key={m.id} value={m.id}>{m.nome}</option>
-                                ))}
-                            </select>
-                        </div>
-                        <div className="col-12 col-lg-4">
+                        {isSuperAdmin && (
+                            <div className="col-12 col-lg">
+                                <label className="form-label text-muted small mb-1">Municipio</label>
+                                <select
+                                    className="form-select"
+                                    value={filterMunicipioId}
+                                    onChange={(e) => { setFilterMunicipioId(e.target.value); setFilterGestorId(''); setFilterEscolaId('') }}
+                                >
+                                    <option value="">Selecione um municipio...</option>
+                                    {municipios.map(m => (
+                                        <option key={m.id} value={m.id}>{m.nome}</option>
+                                    ))}
+                                </select>
+                            </div>
+                        )}
+                        <div className="col-12 col-lg">
                             <label className="form-label text-muted small mb-1">Gestor</label>
                             <select
                                 className="form-select"
                                 value={filterGestorId}
                                 onChange={(e) => setFilterGestorId(e.target.value)}
-                                disabled={!filterMunicipioId}
+                                disabled={isSuperAdmin && !filterMunicipioId}
                             >
                                 <option value="">Selecione um gestor...</option>
                                 {gestores.map(g => (
@@ -236,13 +247,13 @@ export function GestorEscolasPage() {
                                 ))}
                             </select>
                         </div>
-                        <div className="col-12 col-lg-3">
+                        <div className="col-12 col-lg">
                             <label className="form-label text-muted small mb-1">Escola</label>
                             <select
                                 className="form-select"
                                 value={filterEscolaId}
                                 onChange={(e) => setFilterEscolaId(e.target.value)}
-                                disabled={!filterMunicipioId}
+                                disabled={isSuperAdmin && !filterMunicipioId}
                             >
                                 <option value="">Todas</option>
                                 {escolasFiltro.map(e => (
@@ -250,7 +261,7 @@ export function GestorEscolasPage() {
                                 ))}
                             </select>
                         </div>
-                        <div className="col-12 col-lg-2">
+                        <div className="col-12 col-lg-auto">
                             <div className="d-flex gap-2">
                                 <button className="btn btn-primary flex-fill" onClick={handleAplicar}>
                                     <i className="bi bi-search me-1"></i>Aplicar

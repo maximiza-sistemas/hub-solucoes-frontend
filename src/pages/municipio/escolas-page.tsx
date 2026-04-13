@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { useDataStore } from '@/stores'
+import { useDataStore, useAuthStore } from '@/stores'
 import { Pagination, PageLoading, TableLoading } from '@/components/ui'
 import type { Escola } from '@/types'
 
 export function MunicipioEscolasPage() {
     const { municipioId } = useParams()
     const navigate = useNavigate()
+    const { user } = useAuthStore()
+    const isSuperAdmin = user?.role === 'SUPERADMIN'
     const {
         municipios,
         escolas,
@@ -23,6 +25,7 @@ export function MunicipioEscolasPage() {
     } = useDataStore()
 
     const munId = municipioId ? Number(municipioId) : undefined
+    const showMunicipioFilter = isSuperAdmin && !munId
     const [currentPage, setCurrentPage] = useState(0)
     const [pageSize, setPageSize] = useState(10)
     const [debouncedSearch, setDebouncedSearch] = useState('')
@@ -69,7 +72,7 @@ export function MunicipioEscolasPage() {
     const escolasPagination = pagination.escolas || { page: 0, size: pageSize, totalElements: 0, totalPages: 0 }
 
     const refetchEscolas = async () => {
-        const municipioParam = municipioFilter ? Number(municipioFilter) : munId
+        const municipioParam = munId || (showMunicipioFilter && municipioFilter ? Number(municipioFilter) : undefined)
         setIsFetching(true)
         try {
             await fetchEscolas({
@@ -203,7 +206,7 @@ export function MunicipioEscolasPage() {
             <div className="card border-0 shadow-sm mb-4">
                 <div className="card-body py-3">
                     <div className="row gy-3 gx-3 align-items-end">
-                        <div className="col-12 col-lg-6">
+                        <div className={`col-12 ${showMunicipioFilter ? 'col-lg-6' : 'col-lg-8'}`}>
                             <label className="form-label text-muted small mb-1">Busca</label>
                             <div className="input-group">
                                 <span className="input-group-text bg-white border-end-0"><i className="bi bi-search"></i></span>
@@ -234,15 +237,17 @@ export function MunicipioEscolasPage() {
                                 ))}
                             </select>
                         </div>
-                        <div className="col-6 col-lg-2">
-                            <label className="form-label text-muted small mb-1">Município</label>
-                            <select className="form-select" value={municipioFilter} onChange={(e) => setMunicipioFilter(e.target.value)}>
-                                <option value="">Todos os municípios</option>
-                                {municipios.map(m => (
-                                    <option key={m.id} value={m.id}>{m.nome}</option>
-                                ))}
-                            </select>
-                        </div>
+                        {showMunicipioFilter && (
+                            <div className="col-6 col-lg-2">
+                                <label className="form-label text-muted small mb-1">Município</label>
+                                <select className="form-select" value={municipioFilter} onChange={(e) => setMunicipioFilter(e.target.value)}>
+                                    <option value="">Todos os municípios</option>
+                                    {municipios.map(m => (
+                                        <option key={m.id} value={m.id}>{m.nome}</option>
+                                    ))}
+                                </select>
+                            </div>
+                        )}
                         <div className='col-12 d-flex justify-content-end align-items-center gap-2'>
                             <label className="form-label text-muted small mb-1">&nbsp;</label>
                             <div className="d-flex justify-content-end align-items-center gap-2 flex-wrap">
@@ -277,6 +282,8 @@ export function MunicipioEscolasPage() {
                                         <th className="border-0">Município</th>
                                         <th className="border-0">Grupo</th>
                                         <th className="border-0">Região</th>
+                                        <th className="border-0 text-center">Turmas</th>
+                                        <th className="border-0 text-center">Alunos</th>
                                         <th className="border-0 text-end">Ações</th>
                                     </tr>
                                 </thead>
@@ -299,6 +306,12 @@ export function MunicipioEscolasPage() {
                                             </td>
                                             <td className="align-middle">
                                                 <span className="text-muted">{escola.regiao || '-'}</span>
+                                            </td>
+                                            <td className="align-middle text-center">
+                                                <span className="badge bg-primary text-white">{escola.totalTurmas ?? 0}</span>
+                                            </td>
+                                            <td className="align-middle text-center">
+                                                <span className="badge bg-success text-white">{escola.totalAlunos ?? 0}</span>
                                             </td>
                                             <td className="align-middle text-end">
                                                 <div className="btn-group btn-group-sm">
@@ -357,13 +370,15 @@ export function MunicipioEscolasPage() {
                             <input type="text" className={`form-control form-control-lg ${formErrors.nome ? 'is-invalid' : ''}`} placeholder="Ex: EMEF Maria Montessori" value={formData.nome} onChange={(e) => setFormData({ ...formData, nome: e.target.value })} />
                             {formErrors.nome && <div className="invalid-feedback">{formErrors.nome}</div>}
                         </div>
-                        <div className="col-12">
-                            <label className="form-label fw-medium">Município <span className="text-danger">*</span></label>
-                            <select className="form-select" value={formData.municipioId} onChange={(e) => setFormData({ ...formData, municipioId: e.target.value, grupoId: '', regiaoId: '' })} disabled={!!munId}>
-                                <option value="">Selecione um município</option>
-                                {municipios.map(m => <option key={m.id} value={m.id}>{m.nome} - {m.uf}</option>)}
-                            </select>
-                        </div>
+                        {isSuperAdmin && (
+                            <div className="col-12">
+                                <label className="form-label fw-medium">Município <span className="text-danger">*</span></label>
+                                <select className="form-select" value={formData.municipioId} onChange={(e) => setFormData({ ...formData, municipioId: e.target.value, grupoId: '', regiaoId: '' })} disabled={!!munId}>
+                                    <option value="">Selecione um município</option>
+                                    {municipios.map(m => <option key={m.id} value={m.id}>{m.nome} - {m.uf}</option>)}
+                                </select>
+                            </div>
+                        )}
                         <div className="col-md-6">
                             <label className="form-label fw-medium">Grupo</label>
                             <select className="form-select" value={formData.grupoId} onChange={(e) => setFormData({ ...formData, grupoId: e.target.value })}>
@@ -401,13 +416,15 @@ export function MunicipioEscolasPage() {
                             <input type="text" className={`form-control form-control-lg ${formErrors.nome ? 'is-invalid' : ''}`} value={formData.nome} onChange={(e) => setFormData({ ...formData, nome: e.target.value })} />
                             {formErrors.nome && <div className="invalid-feedback">{formErrors.nome}</div>}
                         </div>
-                        <div className="col-12">
-                            <label className="form-label fw-medium">Município <span className="text-danger">*</span></label>
-                            <select className="form-select" value={formData.municipioId} onChange={(e) => setFormData({ ...formData, municipioId: e.target.value, grupoId: '', regiaoId: '' })} disabled={!!munId}>
-                                <option value="">Selecione um município</option>
-                                {municipios.map(m => <option key={m.id} value={m.id}>{m.nome} - {m.uf}</option>)}
-                            </select>
-                        </div>
+                        {isSuperAdmin && (
+                            <div className="col-12">
+                                <label className="form-label fw-medium">Município <span className="text-danger">*</span></label>
+                                <select className="form-select" value={formData.municipioId} onChange={(e) => setFormData({ ...formData, municipioId: e.target.value, grupoId: '', regiaoId: '' })} disabled={!!munId}>
+                                    <option value="">Selecione um município</option>
+                                    {municipios.map(m => <option key={m.id} value={m.id}>{m.nome} - {m.uf}</option>)}
+                                </select>
+                            </div>
+                        )}
                         <div className="col-md-6">
                             <label className="form-label fw-medium">Grupo</label>
                             <select className="form-select" value={formData.grupoId} onChange={(e) => setFormData({ ...formData, grupoId: e.target.value })}>

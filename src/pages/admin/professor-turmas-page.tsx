@@ -6,7 +6,8 @@ import type { Usuario, Turma, Municipio, Escola, PageResponse } from '@/types'
 import { toast } from 'sonner'
 
 export function ProfessorTurmasPage() {
-    const { accessToken } = useAuthStore()
+    const { accessToken, user } = useAuthStore()
+    const isSuperAdmin = user?.role === 'SUPERADMIN'
 
     const [municipios, setMunicipios] = useState<Municipio[]>([])
     const [professores, setProfessores] = useState<Usuario[]>([])
@@ -41,13 +42,21 @@ export function ProfessorTurmasPage() {
     const [isFetching, setIsFetching] = useState(false)
 
     useEffect(() => {
-        municipiosApi.list(accessToken)
-            .then(r => setMunicipios(r.content))
-            .finally(() => setInitialLoading(false))
+        const promises: Promise<any>[] = []
+        if (isSuperAdmin) {
+            promises.push(municipiosApi.list(accessToken).then(r => setMunicipios(r.content)))
+        } else {
+            promises.push(
+                professoresApi.listProfessores(accessToken).then(r => setProfessores(r.content)).catch(() => {}),
+                escolasApi.list(accessToken).then(r => setEscolas(r.content)).catch(() => {})
+            )
+        }
+        Promise.all(promises).finally(() => setInitialLoading(false))
     }, [])
 
-    // Cascading: municipio -> professores + escolas
+    // Cascading: municipio -> professores + escolas (only for SUPERADMIN)
     useEffect(() => {
+        if (!isSuperAdmin) return
         if (filterMunicipioId) {
             const munId = Number(filterMunicipioId)
             professoresApi.listProfessoresByMunicipio(munId, accessToken).then(r => setProfessores(r.content))
@@ -216,26 +225,28 @@ export function ProfessorTurmasPage() {
             <div className="card border-0 shadow-sm mb-4">
                 <div className="card-body py-3">
                     <div className="row gy-3 gx-3 align-items-end">
-                        <div className="col-12 col-lg">
-                            <label className="form-label text-muted small mb-1">Municipio</label>
-                            <select
-                                className="form-select"
-                                value={filterMunicipioId}
-                                onChange={(e) => { setFilterMunicipioId(e.target.value); setFilterProfessorId(''); setFilterEscolaId(''); setFilterTurmaId('') }}
-                            >
-                                <option value="">Selecione um municipio...</option>
-                                {municipios.map(m => (
-                                    <option key={m.id} value={m.id}>{m.nome}</option>
-                                ))}
-                            </select>
-                        </div>
+                        {isSuperAdmin && (
+                            <div className="col-12 col-lg">
+                                <label className="form-label text-muted small mb-1">Municipio</label>
+                                <select
+                                    className="form-select"
+                                    value={filterMunicipioId}
+                                    onChange={(e) => { setFilterMunicipioId(e.target.value); setFilterProfessorId(''); setFilterEscolaId(''); setFilterTurmaId('') }}
+                                >
+                                    <option value="">Selecione um municipio...</option>
+                                    {municipios.map(m => (
+                                        <option key={m.id} value={m.id}>{m.nome}</option>
+                                    ))}
+                                </select>
+                            </div>
+                        )}
                         <div className="col-12 col-lg">
                             <label className="form-label text-muted small mb-1">Professor</label>
                             <select
                                 className="form-select"
                                 value={filterProfessorId}
                                 onChange={(e) => setFilterProfessorId(e.target.value)}
-                                disabled={!filterMunicipioId}
+                                disabled={isSuperAdmin && !filterMunicipioId}
                             >
                                 <option value="">Selecione um professor...</option>
                                 {professores.map(p => (
@@ -249,7 +260,7 @@ export function ProfessorTurmasPage() {
                                 className="form-select"
                                 value={filterEscolaId}
                                 onChange={(e) => { setFilterEscolaId(e.target.value); setFilterTurmaId('') }}
-                                disabled={!filterMunicipioId}
+                                disabled={isSuperAdmin && !filterMunicipioId}
                             >
                                 <option value="">Todas</option>
                                 {escolas.map(e => (

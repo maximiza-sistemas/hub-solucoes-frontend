@@ -115,7 +115,7 @@ export function SolucoesPage() {
         const errors: Record<string, string> = {}
         if (!formData.nome || formData.nome.length < 3) errors.nome = 'Nome deve ter no mínimo 3 caracteres'
         if (!formData.descricao || formData.descricao.length < 10) errors.descricao = 'Descrição deve ter no mínimo 10 caracteres'
-        if (!formData.municipioId) errors.municipioId = 'Selecione um município'
+        if (isSuperAdmin && !formData.municipioId) errors.municipioId = 'Selecione um município'
         setFormErrors(errors)
         return Object.keys(errors).length === 0
     }
@@ -130,7 +130,7 @@ export function SolucoesPage() {
                 nome: formData.nome,
                 descricao: formData.descricao,
                 link: formData.link || undefined,
-                municipioId: Number(formData.municipioId),
+                municipioId: isSuperAdmin ? Number(formData.municipioId) : undefined,
             }, accessToken)
             await loadSolucoes()
             handleCloseModal()
@@ -151,7 +151,7 @@ export function SolucoesPage() {
                 nome: formData.nome,
                 descricao: formData.descricao,
                 link: formData.link || undefined,
-                municipioId: Number(formData.municipioId),
+                municipioId: isSuperAdmin ? Number(formData.municipioId) : undefined,
             }, accessToken)
             await loadSolucoes()
             handleCloseEditModal()
@@ -394,16 +394,18 @@ export function SolucoesPage() {
                                                 <input type="text" className={`form-control form-control-lg ${formErrors.nome ? 'is-invalid' : ''}`} placeholder="Ex: Portal do Aluno" value={formData.nome} onChange={(e) => setFormData({ ...formData, nome: e.target.value })} />
                                                 {formErrors.nome && <div className="invalid-feedback">{formErrors.nome}</div>}
                                             </div>
-                                            <div className="col-12">
-                                                <label className="form-label fw-medium">Município <span className="text-danger">*</span></label>
-                                                <select className={`form-select form-select-lg ${formErrors.municipioId ? 'is-invalid' : ''}`} value={formData.municipioId} onChange={(e) => setFormData({ ...formData, municipioId: e.target.value })}>
-                                                    <option value="">Selecione um município</option>
-                                                    {municipios.map(m => (
-                                                        <option key={m.id} value={m.id}>{m.nome}</option>
-                                                    ))}
-                                                </select>
-                                                {formErrors.municipioId && <div className="invalid-feedback">{formErrors.municipioId}</div>}
-                                            </div>
+                                            {isSuperAdmin && (
+                                                <div className="col-12">
+                                                    <label className="form-label fw-medium">Município <span className="text-danger">*</span></label>
+                                                    <select className={`form-select form-select-lg ${formErrors.municipioId ? 'is-invalid' : ''}`} value={formData.municipioId} onChange={(e) => setFormData({ ...formData, municipioId: e.target.value })}>
+                                                        <option value="">Selecione um município</option>
+                                                        {municipios.map(m => (
+                                                            <option key={m.id} value={m.id}>{m.nome}</option>
+                                                        ))}
+                                                    </select>
+                                                    {formErrors.municipioId && <div className="invalid-feedback">{formErrors.municipioId}</div>}
+                                                </div>
+                                            )}
                                             <div className="col-12">
                                                 <label className="form-label fw-medium">Descrição <span className="text-danger">*</span></label>
                                                 <textarea rows={3} className={`form-control ${formErrors.descricao ? 'is-invalid' : ''}`} placeholder="Descreva as funcionalidades..." value={formData.descricao} onChange={(e) => setFormData({ ...formData, descricao: e.target.value })} />
@@ -450,16 +452,18 @@ export function SolucoesPage() {
                                                 <input type="text" className={`form-control form-control-lg ${formErrors.nome ? 'is-invalid' : ''}`} value={formData.nome} onChange={(e) => setFormData({ ...formData, nome: e.target.value })} />
                                                 {formErrors.nome && <div className="invalid-feedback">{formErrors.nome}</div>}
                                             </div>
-                                            <div className="col-12">
-                                                <label className="form-label fw-medium">Município <span className="text-danger">*</span></label>
-                                                <select className={`form-select form-select-lg ${formErrors.municipioId ? 'is-invalid' : ''}`} value={formData.municipioId} onChange={(e) => setFormData({ ...formData, municipioId: e.target.value })}>
-                                                    <option value="">Selecione um município</option>
-                                                    {municipios.map(m => (
-                                                        <option key={m.id} value={m.id}>{m.nome}</option>
-                                                    ))}
-                                                </select>
-                                                {formErrors.municipioId && <div className="invalid-feedback">{formErrors.municipioId}</div>}
-                                            </div>
+                                            {isSuperAdmin && (
+                                                <div className="col-12">
+                                                    <label className="form-label fw-medium">Município <span className="text-danger">*</span></label>
+                                                    <select className={`form-select form-select-lg ${formErrors.municipioId ? 'is-invalid' : ''}`} value={formData.municipioId} onChange={(e) => setFormData({ ...formData, municipioId: e.target.value })}>
+                                                        <option value="">Selecione um município</option>
+                                                        {municipios.map(m => (
+                                                            <option key={m.id} value={m.id}>{m.nome}</option>
+                                                        ))}
+                                                    </select>
+                                                    {formErrors.municipioId && <div className="invalid-feedback">{formErrors.municipioId}</div>}
+                                                </div>
+                                            )}
                                             <div className="col-12">
                                                 <label className="form-label fw-medium">Descrição <span className="text-danger">*</span></label>
                                                 <textarea rows={3} className={`form-control ${formErrors.descricao ? 'is-invalid' : ''}`} value={formData.descricao} onChange={(e) => setFormData({ ...formData, descricao: e.target.value })} />
