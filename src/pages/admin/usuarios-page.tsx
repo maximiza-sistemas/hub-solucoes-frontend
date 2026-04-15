@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
-import { useDataStore, useAuthStore } from '@/stores'
+import { useDataStore, useAuthStore, useUsuarioImportJobStore } from '@/stores'
 import { Pagination, PageLoading, TableLoading } from '@/components/ui'
+import { UsuarioImportModal } from '@/components/usuario-import-modal'
 import { usuariosApi } from '@/services/api'
 import { toast } from 'sonner'
 import type { Usuario, Role } from '@/types'
@@ -37,6 +38,7 @@ export function UsuariosPage() {
     const [activeTab, setActiveTab] = useState<'usuarios' | 'papeis'>('usuarios')
 
     const [showModal, setShowModal] = useState(false)
+    const [showImportModal, setShowImportModal] = useState(false)
     const [showEditModal, setShowEditModal] = useState(false)
     const [showDeleteModal, setShowDeleteModal] = useState(false)
     const [selectedUsuario, setSelectedUsuario] = useState<Usuario | null>(null)
@@ -46,7 +48,7 @@ export function UsuariosPage() {
     const [showRoleModal, setShowRoleModal] = useState(false)
     const [showRoleDeleteModal, setShowRoleDeleteModal] = useState(false)
     const [selectedRole, setSelectedRole] = useState<Role | null>(null)
-    const [roleForm, setRoleForm] = useState({ descricao: '' })
+    const [roleForm, setRoleForm] = useState({ descricao: '', descricaoPtBr: '' })
     const [roleErrors, setRoleErrors] = useState<Record<string, string>>({})
     const [isRoleLoading, setIsRoleLoading] = useState(false)
     const [rolePage, setRolePage] = useState(0)
@@ -117,6 +119,14 @@ export function UsuariosPage() {
     useEffect(() => {
         if (!initialLoading) refetchUsuarios()
     }, [currentPage, debouncedNome, debouncedEmail, ativoFilter, municipioFilter, pageSize])
+
+    const importLastCompletedAt = useUsuarioImportJobStore(s => s.lastCompletedAt)
+    useEffect(() => {
+        if (importLastCompletedAt && !initialLoading) {
+            refetchUsuarios()
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [importLastCompletedAt])
 
     const rolesPagination = pagination.roles || { page: 0, size: rolePageSize, totalElements: 0, totalPages: 0 }
 
@@ -324,14 +334,17 @@ export function UsuariosPage() {
 
     const handleOpenRoleModal = () => {
         setSelectedRole(null)
-        setRoleForm({ descricao: '' })
+        setRoleForm({ descricao: '', descricaoPtBr: '' })
         setRoleErrors({})
         setShowRoleModal(true)
     }
 
     const handleOpenRoleEdit = (role: Role) => {
         setSelectedRole(role)
-        setRoleForm({ descricao: role.descricao || role.nome })
+        setRoleForm({
+            descricao: role.descricao || role.nome,
+            descricaoPtBr: role.descricaoPtBr || '',
+        })
         setRoleErrors({})
         setShowRoleModal(true)
     }
@@ -341,10 +354,14 @@ export function UsuariosPage() {
         if (!validateRoleForm()) return
         setIsRoleLoading(true)
         try {
+            const payload = {
+                descricao: roleForm.descricao,
+                descricaoPtBr: roleForm.descricaoPtBr || undefined,
+            }
             if (selectedRole) {
-                await updateRole(selectedRole.id, { descricao: roleForm.descricao })
+                await updateRole(selectedRole.id, payload)
             } else {
-                await addRole({ descricao: roleForm.descricao })
+                await addRole(payload)
             }
             await fetchRoles({ descricao: debouncedRoleSearch || undefined })
             setShowRoleModal(false)
@@ -389,9 +406,14 @@ export function UsuariosPage() {
                     <p className="text-muted mb-0">{activeTab === 'usuarios' ? 'Gerencie os usuários do sistema' : 'Gerencie os perfis e permissões'}</p>
                 </div>
                 {!isGestor && (activeTab === 'usuarios' ? (
-                    <button className="btn btn-primary d-flex align-items-center gap-2" onClick={handleOpenModal}>
-                        <i className="bi bi-plus-lg"></i>Novo Usuário
-                    </button>
+                    <div className="d-flex gap-2">
+                        <button className="btn btn-outline-primary d-flex align-items-center gap-2" onClick={() => setShowImportModal(true)}>
+                            <i className="bi bi-file-earmark-excel"></i>Importar Usuários
+                        </button>
+                        <button className="btn btn-primary d-flex align-items-center gap-2" onClick={handleOpenModal}>
+                            <i className="bi bi-plus-lg"></i>Novo Usuário
+                        </button>
+                    </div>
                 ) : (
                     <button className="btn btn-primary d-flex align-items-center gap-2" onClick={handleOpenRoleModal}>
                         <i className="bi bi-plus-lg"></i>Novo Perfil
@@ -642,7 +664,7 @@ export function UsuariosPage() {
                                                         >
                                                             <option value="">Selecione</option>
                                                             {availableRolesForCreate.map(r => (
-                                                                <option key={r.id} value={r.id}>{r.descricao || r.nome}</option>
+                                                                <option key={r.id} value={r.id}>{r.descricaoPtBr || r.descricao || r.nome}</option>
                                                             ))}
                                                         </select>
                                                         {formErrors.tipoUsuarioId && <div className="invalid-feedback">{formErrors.tipoUsuarioId}</div>}
@@ -702,7 +724,7 @@ export function UsuariosPage() {
                                                         <select className="form-select" value={formData.tipoUsuarioId} onChange={(e) => setFormData({ ...formData, tipoUsuarioId: e.target.value })}>
                                                             <option value="">Selecione</option>
                                                             {roles.map(r => (
-                                                                <option key={r.id} value={r.id}>{r.descricao || r.nome}</option>
+                                                                <option key={r.id} value={r.id}>{r.descricaoPtBr || r.descricao || r.nome}</option>
                                                             ))}
                                                         </select>
                                                     </div>
@@ -872,8 +894,11 @@ export function UsuariosPage() {
                                                             <i className="bi bi-shield-check"></i>
                                                         </div>
                                                         <div>
-                                                            <p className="fw-medium mb-0">{role.descricao || role.nome}</p>
-                                                            <p className="text-muted small mb-0">ID: #{role.id}</p>
+                                                            <p className="fw-medium mb-0">{role.descricaoPtBr || role.descricao || role.nome}</p>
+                                                            <p className="text-muted small mb-0">
+                                                                {role.descricaoPtBr && <span className="me-2"><code>{role.descricao}</code></span>}
+                                                                ID: #{role.id}
+                                                            </p>
                                                         </div>
                                                     </div>
                                                 </td>
@@ -934,14 +959,30 @@ export function UsuariosPage() {
                                         </div>
                                         <form onSubmit={handleRoleSubmit}>
                                             <div className="modal-body p-4">
-                                                <label className="form-label fw-medium">Descrição <span className="text-danger">*</span></label>
-                                                <input
-                                                    type="text"
-                                                    className={`form-control ${roleErrors.descricao ? 'is-invalid' : ''}`}
-                                                    value={roleForm.descricao}
-                                                    onChange={(e) => setRoleForm({ descricao: e.target.value })}
-                                                />
-                                                {roleErrors.descricao && <div className="invalid-feedback">{roleErrors.descricao}</div>}
+                                                <div className="mb-3">
+                                                    <label className="form-label fw-medium">Código <span className="text-danger">*</span></label>
+                                                    <input
+                                                        type="text"
+                                                        className={`form-control ${roleErrors.descricao ? 'is-invalid' : ''}`}
+                                                        value={roleForm.descricao}
+                                                        onChange={(e) => setRoleForm({ ...roleForm, descricao: e.target.value })}
+                                                        placeholder="ADMIN, GESTOR, PROFESSOR..."
+                                                    />
+                                                    {roleErrors.descricao && <div className="invalid-feedback">{roleErrors.descricao}</div>}
+                                                    <div className="form-text">Identificador técnico do perfil (usado em autorização).</div>
+                                                </div>
+                                                <div>
+                                                    <label className="form-label fw-medium">Descrição (pt-BR)</label>
+                                                    <input
+                                                        type="text"
+                                                        className="form-control"
+                                                        value={roleForm.descricaoPtBr}
+                                                        onChange={(e) => setRoleForm({ ...roleForm, descricaoPtBr: e.target.value })}
+                                                        placeholder="Administrador do Município"
+                                                        maxLength={255}
+                                                    />
+                                                    <div className="form-text">Nome exibido nas telas.</div>
+                                                </div>
                                             </div>
                                             <div className="modal-footer bg-light">
                                                 <button type="button" className="btn btn-outline-secondary" onClick={() => { setShowRoleModal(false); setSelectedRole(null) }}>Cancelar</button>
@@ -987,6 +1028,8 @@ export function UsuariosPage() {
                     )}
                 </>
             )}
+
+            <UsuarioImportModal isOpen={showImportModal} onClose={() => setShowImportModal(false)} />
         </div>
     )
 }

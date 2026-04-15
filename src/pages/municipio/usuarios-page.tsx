@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { useDataStore, useAuthStore } from '@/stores'
+import { useDataStore, useAuthStore, useUsuarioImportJobStore } from '@/stores'
 import { Pagination, PageLoading, TableLoading } from '@/components/ui'
+import { UsuarioImportModal } from '@/components/usuario-import-modal'
 import type { Usuario } from '@/types'
 
 export function MunicipioUsuariosPage() {
@@ -33,6 +34,7 @@ export function MunicipioUsuariosPage() {
     const [pageSize, setPageSize] = useState(10)
 
     const [showAddModal, setShowAddModal] = useState(false)
+    const [showImportModal, setShowImportModal] = useState(false)
     const [showEditModal, setShowEditModal] = useState(false)
     const [showDeleteModal, setShowDeleteModal] = useState(false)
     const [selectedUsuario, setSelectedUsuario] = useState<Usuario | null>(null)
@@ -95,6 +97,14 @@ export function MunicipioUsuariosPage() {
     useEffect(() => {
         if (!initialLoading) refetchUsuarios()
     }, [munId, currentPage, debouncedNome, debouncedEmail, ativoFilter, pageSize])
+
+    const importLastCompletedAt = useUsuarioImportJobStore(s => s.lastCompletedAt)
+    useEffect(() => {
+        if (importLastCompletedAt && !initialLoading) {
+            refetchUsuarios()
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [importLastCompletedAt])
 
     const tipoUsuarioBadge = (tipo: string) => {
         switch (tipo) {
@@ -224,9 +234,14 @@ export function MunicipioUsuariosPage() {
                     </div>
                     <p className="text-muted mb-0">{municipio.nome} - {municipio.uf}</p>
                 </div>
-                <button className="btn btn-primary d-flex align-items-center gap-2" onClick={handleOpenAddModal}>
-                    <i className="bi bi-plus-lg"></i>Novo Usuário
-                </button>
+                <div className="d-flex gap-2">
+                    <button className="btn btn-outline-primary d-flex align-items-center gap-2" onClick={() => setShowImportModal(true)}>
+                        <i className="bi bi-file-earmark-excel"></i>Importar Usuários
+                    </button>
+                    <button className="btn btn-primary d-flex align-items-center gap-2" onClick={handleOpenAddModal}>
+                        <i className="bi bi-plus-lg"></i>Novo Usuário
+                    </button>
+                </div>
             </div>
 
             <div className="row g-3 mb-4">
@@ -414,7 +429,7 @@ export function MunicipioUsuariosPage() {
                                 }}
                             >
                                 <option value="">Selecione</option>
-                                {availableRolesForCreate.map(role => <option key={role.id} value={role.id}>{role.nome || role.descricao}</option>)}
+                                {availableRolesForCreate.map(role => <option key={role.id} value={role.id}>{role.descricaoPtBr || role.descricao || role.nome}</option>)}
                             </select>
                             {formErrors.tipoUsuarioId && <div className="invalid-feedback">{formErrors.tipoUsuarioId}</div>}
                         </div>
@@ -478,6 +493,8 @@ export function MunicipioUsuariosPage() {
                     </div>
                 </div></div></div><div className="modal-backdrop fade show"></div></>
             )}
+
+            <UsuarioImportModal isOpen={showImportModal} onClose={() => setShowImportModal(false)} />
         </div>
     )
 }

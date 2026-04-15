@@ -270,6 +270,26 @@ export const usuariosApi = {
 
     resetSenha: (id: number, data: { novaSenha: string }, token?: string | null) =>
         request<void>(`/usuarios/${id}/reset-senha`, { method: 'PUT', body: data, token }),
+
+    startImport: (file: File, municipioId?: number | null, token?: string | null) => {
+        const path = municipioId != null
+            ? `/usuarios/import?municipioId=${municipioId}`
+            : '/usuarios/import'
+        return uploadFile<{ jobId: string }>(path, file, 'file', token)
+    },
+
+    getImportProgress: (jobId: string, token?: string | null) =>
+        request<ImportJobProgress>(`/usuarios/import/${jobId}`, { token }),
+
+    getActiveImport: (token?: string | null, municipioId?: number | null) => {
+        const path = municipioId != null
+            ? `/usuarios/import/active?municipioId=${municipioId}`
+            : '/usuarios/import/active'
+        return request<ImportJobProgress | undefined>(path, { token })
+    },
+
+    cancelImport: (jobId: string, token?: string | null) =>
+        request<ImportJobProgress>(`/usuarios/import/${jobId}/cancel`, { method: 'POST', token }),
 }
 
 // Solucoes API

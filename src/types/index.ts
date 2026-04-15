@@ -128,6 +128,7 @@ export interface Role {
     id: number
     nome: string
     descricao?: string
+    descricaoPtBr?: string
 }
 
 // Pagination
@@ -216,7 +217,8 @@ export type ImportJobStatus = 'QUEUED' | 'RUNNING' | 'COMPLETED' | 'FAILED' | 'C
 export interface AlunoImportadoResumo {
     linha: number
     nome: string
-    cpf: string
+    cpf?: string
+    email?: string
 }
 
 export interface ImportJobProgress {
