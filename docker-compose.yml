@@ -12,5 +12,13 @@ services:
     
 networks:
   default:
+    ipam:
+      config:
+        - subnet: 10.200.111.0/24
+  hub-front-net:
+    name: hub-front-net
+    ipam:
+      config:
+        - subnet: 10.200.110.0/24
+  easypanel:
     external: true
-    name: easypanel
