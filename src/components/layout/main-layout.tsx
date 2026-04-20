@@ -7,14 +7,14 @@ import { ImportProgressPanel } from '@/components/import-progress-panel'
 import { UsuarioImportProgressPanel } from '@/components/usuario-import-progress-panel'
 
 export function MainLayout() {
-    const { isAuthenticated } = useAuthStore()
+    const { isAuthenticated, user } = useAuthStore()
 
     useEffect(() => {
-        if (isAuthenticated) {
+        if (isAuthenticated && (user?.role === 'ADMIN' || user?.role === 'SUPERADMIN')) {
             useImportJobStore.getState().resumeIfActive()
             useUsuarioImportJobStore.getState().resumeIfActive()
         }
-    }, [isAuthenticated])
+    }, [isAuthenticated, user?.role])
 
     if (!isAuthenticated) {
         return <Navigate to="/login" replace />
