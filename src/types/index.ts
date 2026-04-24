@@ -135,6 +135,15 @@ export interface DashboardStats {
     crescimentoAlunos: number
 }
 
+export interface MunicipioDashboard {
+    municipioId: number | string
+    municipioNome: string
+    totalAlunos: number
+    totalEscolas: number
+    totalUsuarios: number
+    totalSolucoes: number
+}
+
 export interface ChartData {
     name: string
     value: number

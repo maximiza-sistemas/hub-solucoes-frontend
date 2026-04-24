@@ -65,6 +65,12 @@ export const municipiosApi = {
 
     delete: (id: string, token?: string | null) =>
         request<{ message: string }>(`/municipios/${id}`, { method: 'DELETE', token }),
+
+    dashboard: (municipioId: string, token?: string | null) =>
+        request<import('@/types').MunicipioDashboard>(
+            `/municipios/dashboard?municipioId=${municipioId}`,
+            { token }
+        ),
 }
 
 // Usuarios API

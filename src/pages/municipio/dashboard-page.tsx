@@ -1,37 +1,41 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { useDataStore } from '@/stores'
+import { useDataStore, useAuthStore } from '@/stores'
+import { municipiosApi } from '@/services/api'
+import type { MunicipioDashboard } from '@/types'
 
 export function MunicipioDashboardPage() {
     const { municipioId } = useParams()
     const navigate = useNavigate()
+    const token = useAuthStore((s) => s.token)
     const {
         municipios,
         getSolucoesByMunicipio,
-        usuarios,
         alunos,
         fetchMunicipios,
         fetchSolucoes,
-        fetchUsuarios,
         fetchAlunos,
-        fetchEscolas,
-        getEscolasByMunicipio
     } = useDataStore()
 
-    // Fetch all data on mount
+    const [stats, setStats] = useState<MunicipioDashboard | null>(null)
+
     useEffect(() => {
         fetchMunicipios()
         fetchSolucoes(municipioId)
-        fetchUsuarios(municipioId)
         fetchAlunos(municipioId)
-        fetchEscolas(municipioId)
-    }, [municipioId, fetchMunicipios, fetchSolucoes, fetchUsuarios, fetchAlunos, fetchEscolas])
+    }, [municipioId, fetchMunicipios, fetchSolucoes, fetchAlunos])
+
+    useEffect(() => {
+        if (!municipioId) return
+        municipiosApi
+            .dashboard(municipioId, token)
+            .then(setStats)
+            .catch(() => setStats(null))
+    }, [municipioId, token])
 
     const municipio = municipios.find((m) => m.id === municipioId)
     const solucoes = getSolucoesByMunicipio(municipioId || '')
-    const municipioUsuarios = usuarios.filter((u) => u.municipioId === municipioId)
     const municipioAlunos = alunos.filter((a) => a.municipioId === municipioId)
-    const municipioEscolas = getEscolasByMunicipio(municipioId || '')
 
     if (!municipio) {
         return (
@@ -81,7 +85,7 @@ export function MunicipioDashboardPage() {
                             <div className="d-flex align-items-center justify-content-between">
                                 <div>
                                     <p className="text-muted small mb-1">Soluções Ativas</p>
-                                    <h3 className="h2 fw-bold mb-0 text-primary">{solucoes.length}</h3>
+                                    <h3 className="h2 fw-bold mb-0 text-primary">{stats?.totalSolucoes ?? solucoes.length}</h3>
                                 </div>
                                 <div className="d-flex align-items-center justify-content-center rounded-3 bg-primary bg-opacity-10"
                                     style={{ width: 48, height: 48 }}>
@@ -103,7 +107,7 @@ export function MunicipioDashboardPage() {
                             <div className="d-flex align-items-center justify-content-between">
                                 <div>
                                     <p className="text-muted small mb-1">Usuários</p>
-                                    <h3 className="h2 fw-bold mb-0 text-success">{municipioUsuarios.length}</h3>
+                                    <h3 className="h2 fw-bold mb-0 text-success">{stats?.totalUsuarios ?? 0}</h3>
                                 </div>
                                 <div className="d-flex align-items-center justify-content-center rounded-3 bg-success bg-opacity-10"
                                     style={{ width: 48, height: 48 }}>
@@ -125,7 +129,7 @@ export function MunicipioDashboardPage() {
                             <div className="d-flex align-items-center justify-content-between">
                                 <div>
                                     <p className="text-muted small mb-1">Alunos Cadastrados</p>
-                                    <h3 className="h2 fw-bold mb-0 text-info">{municipioAlunos.length}</h3>
+                                    <h3 className="h2 fw-bold mb-0 text-info">{stats?.totalAlunos ?? municipioAlunos.length}</h3>
                                 </div>
                                 <div className="d-flex align-items-center justify-content-center rounded-3 bg-info bg-opacity-10"
                                     style={{ width: 48, height: 48 }}>
@@ -147,7 +151,7 @@ export function MunicipioDashboardPage() {
                             <div className="d-flex align-items-center justify-content-between">
                                 <div>
                                     <p className="text-muted small mb-1">Escolas</p>
-                                    <h3 className="h2 fw-bold mb-0 text-warning">{municipioEscolas.length}</h3>
+                                    <h3 className="h2 fw-bold mb-0 text-warning">{stats?.totalEscolas ?? 0}</h3>
                                 </div>
                                 <div className="d-flex align-items-center justify-content-center rounded-3 bg-warning bg-opacity-10"
                                     style={{ width: 48, height: 48 }}>
