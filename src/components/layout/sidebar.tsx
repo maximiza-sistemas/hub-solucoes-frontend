@@ -6,11 +6,33 @@ export function Sidebar() {
     const [isCollapsed, setIsCollapsed] = useState(false)
     const { user } = useAuthStore()
 
-    const isAdmin = user?.perfil === 'admin'
+    const isAdmin = user?.role === 'ADMIN' || user?.role === 'SUPERADMIN'
+    const isSuperAdmin = user?.role === 'SUPERADMIN'
+    const isGestor = user?.role === 'GESTOR'
 
     const adminMenuItems = [
         { path: '/admin/dashboard', label: 'Dashboard', icon: 'bi-speedometer2' },
-        { path: '/admin/municipios', label: 'Municípios', icon: 'bi-building' },
+        ...(isSuperAdmin ? [
+            { path: '/admin/municipios', label: 'Municípios', icon: 'bi-building' },
+            { path: '/admin/solucoes', label: 'Soluções', icon: 'bi-mortarboard' },
+        ] : []),
+        { path: '/admin/usuarios', label: 'Usuários', icon: 'bi-people' },
+        { path: '/admin/escolas', label: 'Escolas', icon: 'bi-building' },
+        { path: '/admin/turmas', label: 'Turmas', icon: 'bi-journal-text' },
+        { path: '/admin/alunos', label: 'Alunos', icon: 'bi-person-badge' },
+        { path: '/admin/grupos', label: 'Grupos', icon: 'bi-collection' },
+        { path: '/admin/regioes', label: 'Regiões', icon: 'bi-geo-alt' },
+        { path: '/admin/gestor-escolas', label: 'Gestor', icon: 'bi-link-45deg' },
+        { path: '/admin/professor-turmas', label: 'Professor', icon: 'bi-person-workspace' },
+    ]
+
+    const gestorMenuItems = [
+        { path: '/admin/dashboard', label: 'Dashboard', icon: 'bi-speedometer2' },
+        { path: '/admin/escolas', label: 'Escolas', icon: 'bi-building' },
+        { path: '/admin/turmas', label: 'Turmas', icon: 'bi-journal-text' },
+        { path: '/admin/alunos', label: 'Alunos', icon: 'bi-person-badge' },
+        { path: '/admin/grupos', label: 'Grupos', icon: 'bi-collection' },
+        { path: '/admin/regioes', label: 'Regiões', icon: 'bi-geo-alt' },
         { path: '/admin/usuarios', label: 'Usuários', icon: 'bi-people' },
     ]
 
@@ -18,12 +40,14 @@ export function Sidebar() {
         { path: `/municipio/${user?.municipioId}/dashboard`, label: 'Dashboard', icon: 'bi-speedometer2' },
         { path: `/municipio/${user?.municipioId}/solucoes`, label: 'Soluções', icon: 'bi-mortarboard' },
         { path: `/municipio/${user?.municipioId}/escolas`, label: 'Escolas', icon: 'bi-building' },
+        { path: `/municipio/${user?.municipioId}/turmas`, label: 'Turmas', icon: 'bi-journal-text' },
         { path: `/municipio/${user?.municipioId}/usuarios`, label: 'Usuários', icon: 'bi-people' },
         { path: `/municipio/${user?.municipioId}/alunos`, label: 'Alunos', icon: 'bi-person-badge' },
-        { path: `/municipio/${user?.municipioId}/relatorios`, label: 'Relatórios', icon: 'bi-bar-chart' },
+        { path: `/municipio/${user?.municipioId}/regioes`, label: 'Regiões', icon: 'bi-geo-alt' },
+        { path: `/municipio/${user?.municipioId}/grupos`, label: 'Grupos', icon: 'bi-collection' },
     ]
 
-    const menuItems = isAdmin ? adminMenuItems : municipioMenuItems
+    const menuItems = isGestor ? gestorMenuItems : isAdmin ? adminMenuItems : municipioMenuItems
 
     return (
         <div className={`sidebar d-flex flex-column ${isCollapsed ? 'collapsed' : ''}`}>
@@ -76,7 +100,7 @@ export function Sidebar() {
                     {!isCollapsed && (
                         <div className="text-white small overflow-hidden">
                             <div className="fw-medium text-truncate" style={{ maxWidth: 150 }}>{user?.nome}</div>
-                            <div className="text-white-50 small">{user?.perfil}</div>
+                            <div className="text-white-50 small">{user?.role}</div>
                         </div>
                     )}
                 </div>

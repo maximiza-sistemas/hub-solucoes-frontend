@@ -167,7 +167,7 @@ export function ConfiguracoesPage() {
                             <div className="mb-3">
                                 <small className="text-muted d-block">Perfil</small>
                                 <span className="badge bg-primary">
-                                    {user?.perfil === 'admin' ? 'Administrador' : 'Gestor'}
+                                    {user?.role === 'ADMIN' || user?.role === 'SUPERADMIN' ? 'Administrador' : 'Gestor'}
                                 </span>
                             </div>
                             <hr />

@@ -24,12 +24,13 @@ export function Header() {
         'municipio': 'Município',
         'alunos': 'Alunos',
         'escolas': 'Escolas',
-        'professores': 'Professores',
-        'turmas': 'Turmas'
+        'turmas': 'Turmas',
+        'regioes': 'Regiões',
+        'grupos': 'Grupos',
     }
 
-    // Check if a string is a UUID
-    const isUUID = (str: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str)
+    // Check if a string is a numeric ID
+    const isNumericId = (str: string) => /^\d+$/.test(str)
 
     // Get breadcrumb from path with friendly names
     const getBreadcrumbs = () => {
@@ -41,9 +42,9 @@ export function Header() {
             const part = pathParts[i]
             currentPath += `/${part}`
 
-            // Check if it's a UUID (likely a municipio ID)
-            if (isUUID(part)) {
-                const municipio = municipios.find(m => m.id === part)
+            // Check if it's a numeric ID (likely a municipio ID)
+            if (isNumericId(part)) {
+                const municipio = municipios.find(m => m.id === Number(part))
                 breadcrumbs.push({
                     label: municipio?.nome || 'Município',
                     path: currentPath,
@@ -63,13 +64,19 @@ export function Header() {
 
     const breadcrumbs = getBreadcrumbs()
 
+    const homePath = user?.role === 'SUPERADMIN' || user?.role === 'ADMIN'
+        ? '/admin/dashboard'
+        : user?.municipioId
+            ? `/municipio/${user.municipioId}/dashboard`
+            : '/admin/dashboard'
+
     return (
         <header className="main-header">
             <div className="d-flex align-items-center gap-3">
                 <nav aria-label="breadcrumb">
                     <ol className="breadcrumb mb-0 small">
                         <li className="breadcrumb-item">
-                            <a href="#" onClick={(e) => { e.preventDefault(); navigate('/admin/dashboard'); }} className="text-muted text-decoration-none">
+                            <a href="#" onClick={(e) => { e.preventDefault(); navigate(homePath); }} className="text-muted text-decoration-none">
                                 <i className="bi bi-house"></i>
                             </a>
                         </li>
@@ -79,17 +86,7 @@ export function Header() {
                                 className={`breadcrumb-item ${item.isActive ? 'active fw-medium' : ''}`}
                                 aria-current={item.isActive ? 'page' : undefined}
                             >
-                                {item.isActive ? (
-                                    item.label
-                                ) : (
-                                    <a
-                                        href="#"
-                                        onClick={(e) => { e.preventDefault(); navigate(item.path); }}
-                                        className="text-decoration-none"
-                                    >
-                                        {item.label}
-                                    </a>
-                                )}
+                                {item.label}
                             </li>
                         ))}
                     </ol>
@@ -97,26 +94,6 @@ export function Header() {
             </div>
 
             <div className="d-flex align-items-center gap-3">
-                {/* Search */}
-                <div className="input-group" style={{ width: 250 }}>
-                    <span className="input-group-text bg-light border-end-0">
-                        <i className="bi bi-search text-muted"></i>
-                    </span>
-                    <input
-                        type="text"
-                        className="form-control bg-light border-start-0"
-                        placeholder="Buscar..."
-                    />
-                </div>
-
-                {/* Notifications */}
-                <button className="btn btn-light position-relative">
-                    <i className="bi bi-bell"></i>
-                    <span className="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style={{ fontSize: 10 }}>
-                        3
-                    </span>
-                </button>
-
                 {/* User Menu */}
                 <div className="dropdown">
                     <button
@@ -131,13 +108,13 @@ export function Header() {
                         </div>
                         <div className="text-start d-none d-md-block">
                             <div className="small fw-medium">{user?.nome}</div>
-                            <div className="text-muted" style={{ fontSize: 11 }}>{user?.perfil}</div>
+                            <div className="text-muted" style={{ fontSize: 11 }}>{user?.role}</div>
                         </div>
                     </button>
                     <ul className="dropdown-menu dropdown-menu-end shadow-lg border-0" style={{ minWidth: 220 }}>
                         <li className="px-3 py-2 border-bottom">
-                            <div className="d-flex align-items-center gap-2">
-                                <div className="d-flex align-items-center justify-content-center rounded-circle bg-primary text-white"
+                            <div className="d-flex align-items-center">
+                                <div className="d-flex rounded-circle bg-primary text-white"
                                     style={{ width: 40, height: 40, fontSize: 14 }}>
                                     {user?.nome?.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase()}
                                 </div>

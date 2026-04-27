@@ -4,28 +4,8 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { ArrowLeft, Save, Loader2 } from 'lucide-react'
 import { useState, useEffect } from 'react'
-import { Button, Input, Select, Card, CardHeader, CardTitle, CardContent } from '@/components/ui'
-import { useDataStore } from '@/stores'
-import { generateId } from '@/lib/utils'
-
-const solucaoSchema = z.object({
-    nome: z.string().min(3, 'Nome deve ter no mínimo 3 caracteres'),
-    descricao: z.string().min(10, 'Descrição deve ter no mínimo 10 caracteres'),
-    categoria: z.enum(['educacao', 'saude', 'financeiro', 'administrativo', 'social', 'outros']),
-    url: z.string().url('URL inválida').optional().or(z.literal('')),
-    status: z.enum(['ativo', 'inativo']),
-})
-
-type SolucaoFormData = z.infer<typeof solucaoSchema>
-
-const categorias = [
-    { value: 'educacao', label: 'Educação' },
-    { value: 'saude', label: 'Saúde' },
-    { value: 'financeiro', label: 'Financeiro' },
-    { value: 'administrativo', label: 'Administrativo' },
-    { value: 'social', label: 'Social' },
-    { value: 'outros', label: 'Outros' },
-]
+import { Button, Input, Card, CardHeader, CardTitle, CardContent, Select } from '@/components/ui'
+import { useDataStore, useAuthStore } from '@/stores'
 
 export function SolucaoFormPage() {
     const navigate = useNavigate()
@@ -33,8 +13,28 @@ export function SolucaoFormPage() {
     const isEditing = !!id
     const [isLoading, setIsLoading] = useState(false)
 
-    const { solucoes, addSolucao, updateSolucao } = useDataStore()
-    const solucao = solucoes.find((s) => s.id === id)
+    const { user } = useAuthStore()
+    const isSuperAdmin = user?.role === 'SUPERADMIN'
+
+    const solucaoSchema = z.object({
+        nome: z.string().min(3, 'Nome deve ter no mínimo 3 caracteres'),
+        descricao: z.string().min(10, 'Descrição deve ter no mínimo 10 caracteres'),
+        link: z.string().url('URL inválida').optional().or(z.literal('')),
+        municipioId: isSuperAdmin
+            ? z.number({ message: 'Selecione um município' }).min(1, 'Selecione um município')
+            : z.number().optional(),
+    })
+
+    type SolucaoFormData = z.infer<typeof solucaoSchema>
+
+    const { solucoes, addSolucao, updateSolucao, municipios, fetchMunicipios } = useDataStore()
+    const solucao = solucoes.find((s) => s.id === Number(id))
+
+    useEffect(() => {
+        if (isSuperAdmin && municipios.length === 0) {
+            fetchMunicipios()
+        }
+    }, [isSuperAdmin, municipios.length, fetchMunicipios])
 
     const {
         register,
@@ -43,9 +43,6 @@ export function SolucaoFormPage() {
         reset,
     } = useForm<SolucaoFormData>({
         resolver: zodResolver(solucaoSchema),
-        defaultValues: {
-            status: 'ativo',
-        },
     })
 
     useEffect(() => {
@@ -53,35 +50,33 @@ export function SolucaoFormPage() {
             reset({
                 nome: solucao.nome,
                 descricao: solucao.descricao,
-                categoria: solucao.categoria,
-                url: solucao.url || '',
-                status: solucao.status,
+                link: solucao.link || '',
+                municipioId: solucao.municipioId,
             })
         }
     }, [solucao, reset])
 
     const onSubmit = async (data: SolucaoFormData) => {
         setIsLoading(true)
-        await new Promise((resolve) => setTimeout(resolve, 500))
 
         const solucaoData = {
             ...data,
-            url: data.url || undefined,
+            link: data.link || undefined,
+            municipioId: isSuperAdmin ? data.municipioId : undefined,
         }
 
-        if (isEditing && id) {
-            updateSolucao(id, solucaoData)
-        } else {
-            addSolucao({
-                id: generateId(),
-                ...solucaoData,
-                createdAt: new Date().toISOString(),
-                updatedAt: new Date().toISOString(),
-            })
+        try {
+            if (isEditing && id) {
+                await updateSolucao(Number(id), solucaoData)
+            } else {
+                await addSolucao(solucaoData)
+            }
+            navigate('/admin/solucoes')
+        } catch (error) {
+            console.error('Erro ao salvar:', error)
+        } finally {
+            setIsLoading(false)
         }
-
-        setIsLoading(false)
-        navigate('/admin/solucoes')
     }
 
     return (
@@ -110,6 +105,20 @@ export function SolucaoFormPage() {
                             {...register('nome')}
                         />
 
+                        {isSuperAdmin && (
+                            <Select
+                                label="Município"
+                                placeholder="Selecione um município"
+                                options={municipios.map((m) => ({
+                                    value: String(m.id),
+                                    label: m.nome,
+                                }))}
+                                error={errors.municipioId?.message}
+                                disabled={isLoading}
+                                {...register('municipioId', { valueAsNumber: true })}
+                            />
+                        )}
+
                         <div>
                             <label className="block text-sm font-medium text-slate-700 mb-1.5">
                                 Descrição
@@ -124,30 +133,12 @@ export function SolucaoFormPage() {
                             )}
                         </div>
 
-                        <Select
-                            label="Categoria"
-                            options={categorias}
-                            placeholder="Selecione a categoria"
-                            error={errors.categoria?.message}
-                            {...register('categoria')}
-                        />
-
                         <Input
                             label="URL de Acesso"
                             placeholder="https://exemplo.gov.br"
                             helperText="Opcional - Link para acessar a solução"
-                            error={errors.url?.message}
-                            {...register('url')}
-                        />
-
-                        <Select
-                            label="Status"
-                            options={[
-                                { value: 'ativo', label: 'Ativo' },
-                                { value: 'inativo', label: 'Inativo' },
-                            ]}
-                            error={errors.status?.message}
-                            {...register('status')}
+                            error={errors.link?.message}
+                            {...register('link')}
                         />
 
                         <div className="flex gap-3 pt-4">

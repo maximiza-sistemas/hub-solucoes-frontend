@@ -1,0 +1,24 @@
+services:
+  hub-front-end:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: ${VITE_API_URL}
+    ports:
+      - "${PORT}:80"
+    restart: unless-stopped
+    env_file: ./.env
+    
+networks:
+  default:
+    ipam:
+      config:
+        - subnet: 10.200.111.0/24
+  hub-front-net:
+    name: hub-front-net
+    ipam:
+      config:
+        - subnet: 10.200.110.0/24
+  easypanel:
+    external: true

@@ -20,6 +20,8 @@ import {
   DashboardPage,
   PerfilPage,
   ConfiguracoesPage,
+  GestorEscolasPage,
+  ProfessorTurmasPage,
 } from '@/pages/admin'
 
 // Municipio Pages
@@ -29,6 +31,9 @@ import {
   MunicipioAlunosPage,
   MunicipioUsuariosPage,
   MunicipioEscolasPage,
+  MunicipioRegioesPage,
+  MunicipioGruposPage,
+  MunicipioTurmasPage,
 } from '@/pages/municipio'
 
 // Auth Guard
@@ -47,8 +52,21 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 function AdminRoute({ children }: { children: React.ReactNode }) {
   const { user } = useAuthStore()
 
-  if (user?.perfil !== 'admin') {
+  if (user?.role !== 'ADMIN' && user?.role !== 'SUPERADMIN' && user?.role !== 'GESTOR') {
     return <Navigate to={`/municipio/${user?.municipioId}/solucoes`} replace />
+  }
+
+  return <>{children}</>
+}
+
+function SuperAdminRoute({ children }: { children: React.ReactNode }) {
+  const { user } = useAuthStore()
+
+  if (user?.role !== 'SUPERADMIN') {
+    const redirectTo = user?.role === 'ADMIN'
+      ? '/admin/dashboard'
+      : `/municipio/${user?.municipioId}/solucoes`
+    return <Navigate to={redirectTo} replace />
   }
 
   return <>{children}</>
@@ -91,49 +109,49 @@ export default function App() {
           <Route
             path="/admin/municipios"
             element={
-              <AdminRoute>
+              <SuperAdminRoute>
                 <MunicipiosPage />
-              </AdminRoute>
+              </SuperAdminRoute>
             }
           />
           <Route
             path="/admin/municipios/novo"
             element={
-              <AdminRoute>
+              <SuperAdminRoute>
                 <MunicipioFormPage />
-              </AdminRoute>
+              </SuperAdminRoute>
             }
           />
           <Route
             path="/admin/municipios/:id/editar"
             element={
-              <AdminRoute>
+              <SuperAdminRoute>
                 <MunicipioFormPage />
-              </AdminRoute>
+              </SuperAdminRoute>
             }
           />
           <Route
             path="/admin/solucoes"
             element={
-              <AdminRoute>
+              <SuperAdminRoute>
                 <SolucoesPage />
-              </AdminRoute>
+              </SuperAdminRoute>
             }
           />
           <Route
             path="/admin/solucoes/nova"
             element={
-              <AdminRoute>
+              <SuperAdminRoute>
                 <SolucaoFormPage />
-              </AdminRoute>
+              </SuperAdminRoute>
             }
           />
           <Route
             path="/admin/solucoes/:id/editar"
             element={
-              <AdminRoute>
+              <SuperAdminRoute>
                 <SolucaoFormPage />
-              </AdminRoute>
+              </SuperAdminRoute>
             }
           />
           <Route
@@ -157,13 +175,76 @@ export default function App() {
             }
           />
 
+          <Route
+            path="/admin/escolas"
+            element={
+              <AdminRoute>
+                <MunicipioEscolasPage />
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="/admin/turmas"
+            element={
+              <AdminRoute>
+                <MunicipioTurmasPage />
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="/admin/alunos"
+            element={
+              <AdminRoute>
+                <MunicipioAlunosPage />
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="/admin/grupos"
+            element={
+              <AdminRoute>
+                <MunicipioGruposPage />
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="/admin/regioes"
+            element={
+              <AdminRoute>
+                <MunicipioRegioesPage />
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="/admin/gestor-escolas"
+            element={
+              <AdminRoute>
+                <GestorEscolasPage />
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="/admin/professor-turmas"
+            element={
+              <AdminRoute>
+                <ProfessorTurmasPage />
+              </AdminRoute>
+            }
+          />
+
           {/* Municipio Routes */}
           <Route path="/municipio/:municipioId/dashboard" element={<MunicipioDashboardPage />} />
           <Route path="/municipio/:municipioId/solucoes" element={<MunicipioSolucoesPage />} />
           <Route path="/municipio/:municipioId/usuarios" element={<MunicipioUsuariosPage />} />
           <Route path="/municipio/:municipioId/alunos" element={<MunicipioAlunosPage />} />
           <Route path="/municipio/:municipioId/escolas" element={<MunicipioEscolasPage />} />
+          <Route path="/municipio/:municipioId/regioes" element={<MunicipioRegioesPage />} />
+          <Route path="/municipio/:municipioId/grupos" element={<MunicipioGruposPage />} />
+          <Route path="/municipio/:municipioId/turmas" element={<MunicipioTurmasPage />} />
         </Route>
+
+        {/* Redirect intermediate paths */}
+        <Route path="/admin" element={<Navigate to="/admin/municipios" replace />} />
 
         {/* Default Redirect */}
         <Route path="/" element={<LandingPage />} />

@@ -4,11 +4,12 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useAuthStore } from '@/stores'
-import { authApi } from '@/services/api'
+import { authApi, municipiosApi } from '@/services/api'
+import type { AuthUser } from '@/types'
 
 const loginSchema = z.object({
     email: z.string().email('E-mail inválido'),
-    senha: z.string().min(6, 'Senha deve ter no mínimo 6 caracteres'),
+    password: z.string().min(6, 'Senha deve ter no mínimo 6 caracteres'),
 })
 
 type LoginFormData = z.infer<typeof loginSchema>
@@ -33,16 +34,47 @@ export function LoginPage() {
         setError('')
 
         try {
-            const response = await authApi.login(data.email, data.senha)
-            login(response.user, response.token)
+            const response = await authApi.login(data.email, data.password)
 
-            if (response.user.perfil === 'admin') {
-                navigate('/admin/municipios')
+            const user: AuthUser = {
+                id: response.userId,
+                nome: response.nome,
+                email: response.email,
+                role: response.role,
+                municipio: response.municipio,
+            }
+
+            // Resolve municipioId by fetching municipios and finding by name
+            if (response.role !== 'SUPERADMIN' && response.municipio) {
+                try {
+                    const municipiosResponse = await municipiosApi.list(response.accessToken)
+                    const mun = municipiosResponse.content.find(
+                        (m) => m.nome === response.municipio
+                    )
+                    if (mun) {
+                        user.municipioId = mun.id
+                    }
+                } catch {
+                    // Continue without municipioId
+                }
+            }
+
+            login(user, response.accessToken, response.refreshToken)
+
+            if (response.role === 'SUPERADMIN' || response.role === 'ADMIN') {
+                navigate('/admin/dashboard')
+            } else if (user.municipioId) {
+                navigate(`/municipio/${user.municipioId}/dashboard`)
             } else {
-                navigate(`/municipio/${response.user.municipioId}/solucoes`)
+                navigate('/admin/dashboard')
             }
         } catch (err) {
-            setError((err as Error).message || 'E-mail ou senha incorretos')
+            const message = (err as Error).message
+            if (message?.includes('401') || message?.includes('403') || message === 'Erro na requisição' || message === 'Erro desconhecido') {
+                setError('E-mail ou senha incorretos')
+            } else {
+                setError(message || 'E-mail ou senha incorretos')
+            }
         } finally {
             setIsLoading(false)
         }
@@ -90,9 +122,9 @@ export function LoginPage() {
                                         <div className="input-group">
                                             <input
                                                 type={showPassword ? 'text' : 'password'}
-                                                className={`form-control form-control-lg ${errors.senha ? 'is-invalid' : ''}`}
+                                                className={`form-control form-control-lg ${errors.password ? 'is-invalid' : ''}`}
                                                 placeholder="••••••••"
-                                                {...register('senha')}
+                                                {...register('password')}
                                             />
                                             <button
                                                 type="button"
@@ -101,8 +133,8 @@ export function LoginPage() {
                                             >
                                                 <i className={`bi ${showPassword ? 'bi-eye-slash' : 'bi-eye'}`}></i>
                                             </button>
-                                            {errors.senha && (
-                                                <div className="invalid-feedback">{errors.senha.message}</div>
+                                            {errors.password && (
+                                                <div className="invalid-feedback">{errors.password.message}</div>
                                             )}
                                         </div>
                                     </div>
@@ -112,15 +144,6 @@ export function LoginPage() {
                                             {error}
                                         </div>
                                     )}
-
-                                    <div className="mb-4">
-                                        <div className="form-check">
-                                            <input type="checkbox" className="form-check-input" id="rememberMe" />
-                                            <label className="form-check-label small" htmlFor="rememberMe">
-                                                Lembrar-me
-                                            </label>
-                                        </div>
-                                    </div>
 
                                     <button
                                         type="submit"
