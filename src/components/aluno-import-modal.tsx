@@ -1,8 +1,9 @@
-import { useState, useRef } from 'react'
-import { alunosApi } from '@/services/api'
+import { useState, useRef, useEffect } from 'react'
+import { alunosApi, municipiosApi } from '@/services/api'
 import { useAuthStore } from '@/stores/auth-store'
 import { useImportJobStore } from '@/stores/import-job-store'
 import { downloadAlunoTemplate } from '@/lib/aluno-template'
+import type { Municipio } from '@/types'
 
 interface AlunoImportModalProps {
     isOpen: boolean
@@ -10,18 +11,39 @@ interface AlunoImportModalProps {
 }
 
 export function AlunoImportModal({ isOpen, onClose }: AlunoImportModalProps) {
+    const user = useAuthStore(s => s.user)
+    const isSuperAdmin = user?.role === 'SUPERADMIN'
+
     const [file, setFile] = useState<File | null>(null)
     const [error, setError] = useState<string | null>(null)
     const [submitting, setSubmitting] = useState(false)
     const [showConfirm, setShowConfirm] = useState(false)
+    const [municipioId, setMunicipioId] = useState<number | ''>('')
+    const [municipios, setMunicipios] = useState<Municipio[]>([])
+    const [loadingMunicipios, setLoadingMunicipios] = useState(false)
     const fileInputRef = useRef<HTMLInputElement>(null)
     const lastImportedFileRef = useRef<string | null>(null)
+
+    useEffect(() => {
+        if (!isOpen || !isSuperAdmin) return
+        let cancelled = false
+        setLoadingMunicipios(true)
+        const token = useAuthStore.getState().accessToken
+        municipiosApi.list(token, { size: 1000 })
+            .then(res => {
+                if (!cancelled) setMunicipios(res.content ?? [])
+            })
+            .catch(() => { if (!cancelled) setMunicipios([]) })
+            .finally(() => { if (!cancelled) setLoadingMunicipios(false) })
+        return () => { cancelled = true }
+    }, [isOpen, isSuperAdmin])
 
     const reset = () => {
         setFile(null)
         setError(null)
         setShowConfirm(false)
         setSubmitting(false)
+        setMunicipioId('')
         if (fileInputRef.current) fileInputRef.current.value = ''
     }
 
@@ -45,6 +67,10 @@ export function AlunoImportModal({ isOpen, onClose }: AlunoImportModalProps) {
 
     const handleImportClick = () => {
         if (!file) return
+        if (isSuperAdmin && !municipioId) {
+            setError('Selecione o município de destino')
+            return
+        }
         const fileKey = `${file.name}_${file.size}_${file.lastModified}`
         if (lastImportedFileRef.current === fileKey) {
             setShowConfirm(true)
@@ -60,7 +86,8 @@ export function AlunoImportModal({ isOpen, onClose }: AlunoImportModalProps) {
         setError(null)
         try {
             const token = useAuthStore.getState().accessToken
-            const { jobId } = await alunosApi.startImport(file, token)
+            const target = isSuperAdmin && typeof municipioId === 'number' ? municipioId : null
+            const { jobId } = await alunosApi.startImport(file, target, token)
             lastImportedFileRef.current = `${file.name}_${file.size}_${file.lastModified}`
             useImportJobStore.getState().start(jobId, file.name)
             handleClose()
@@ -106,6 +133,23 @@ export function AlunoImportModal({ isOpen, onClose }: AlunoImportModalProps) {
                                             Cancelar
                                         </button>
                                     </div>
+                                </div>
+                            )}
+
+                            {isSuperAdmin && (
+                                <div className="mb-3">
+                                    <label className="form-label fw-medium">Município de destino</label>
+                                    <select
+                                        className="form-select"
+                                        value={municipioId}
+                                        onChange={e => setMunicipioId(e.target.value ? Number(e.target.value) : '')}
+                                        disabled={submitting || loadingMunicipios}
+                                    >
+                                        <option value="">{loadingMunicipios ? 'Carregando municípios...' : 'Selecione um município'}</option>
+                                        {municipios.map(m => (
+                                            <option key={m.id} value={m.id}>{m.nome}</option>
+                                        ))}
+                                    </select>
                                 </div>
                             )}
 

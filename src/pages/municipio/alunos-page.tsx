@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useDataStore, useImportJobStore } from '@/stores'
 import { Pagination, PageLoading, TableLoading } from '@/components/ui'
-import { escolasApi, turmasApi } from '@/services/api'
+import { enumsApi, escolasApi, turmasApi } from '@/services/api'
 import { useAuthStore } from '@/stores/auth-store'
 import type { Aluno, Escola, Turma } from '@/types'
 import { formatDateBR } from '@/lib/utils'
@@ -49,7 +49,9 @@ export function MunicipioAlunosPage() {
     const [cpfTerm, setCpfTerm] = useState('')
     const [turmaFilter, setTurmaFilter] = useState('')
     const [escolaFilter, setEscolaFilter] = useState('')
+    const [serieFilter, setSerieFilter] = useState('')
     const [municipioFilter, setMunicipioFilter] = useState(munId ? String(munId) : '')
+    const [series, setSeries] = useState<string[]>([])
 
     const [appliedFilters, setAppliedFilters] = useState({
         nome: '',
@@ -57,6 +59,7 @@ export function MunicipioAlunosPage() {
         cpf: '',
         turmaId: '',
         escolaId: '',
+        serie: '',
         municipioId: munId ? String(munId) : ''
     })
     const [currentPage, setCurrentPage] = useState(0)
@@ -107,11 +110,16 @@ export function MunicipioAlunosPage() {
     }, [formData.municipioId, munId, isSuperAdmin])
 
     useEffect(() => {
+        const token = useAuthStore.getState().accessToken
+        const seriesPromise = token
+            ? enumsApi.series(token).then(res => setSeries(Array.isArray(res?.content) ? res.content : Array.isArray(res) ? res : [])).catch(console.error)
+            : Promise.resolve()
         Promise.all([
             fetchMunicipios(),
             fetchEscolas(munId),
             fetchTurmas(munId),
             fetchAlunos({ municipioId: munId, page: 0, size: pageSize }),
+            seriesPromise,
         ]).finally(() => setInitialLoading(false))
     }, [])
 
@@ -130,6 +138,7 @@ export function MunicipioAlunosPage() {
                 cpf: appliedFilters.cpf || undefined,
                 turmaId: appliedFilters.turmaId ? Number(appliedFilters.turmaId) : undefined,
                 escolaId: appliedFilters.escolaId ? Number(appliedFilters.escolaId) : undefined,
+                serie: appliedFilters.serie || undefined,
             })
         } finally {
             setIsFetching(false)
@@ -156,6 +165,7 @@ export function MunicipioAlunosPage() {
             cpf: cpfTerm,
             turmaId: turmaFilter,
             escolaId: escolaFilter,
+            serie: serieFilter,
             municipioId: showMunicipioFilter ? municipioFilter : ''
         })
     }
@@ -166,6 +176,7 @@ export function MunicipioAlunosPage() {
         setCpfTerm('')
         setTurmaFilter('')
         setEscolaFilter('')
+        setSerieFilter('')
         const initialMun = munId ? String(munId) : ''
         setMunicipioFilter(initialMun)
         setCurrentPage(0)
@@ -175,6 +186,7 @@ export function MunicipioAlunosPage() {
             cpf: '',
             turmaId: '',
             escolaId: '',
+            serie: '',
             municipioId: initialMun
         })
     }
@@ -425,6 +437,16 @@ export function MunicipioAlunosPage() {
                             <select className="form-select" value={escolaFilter} onChange={e => { setEscolaFilter(e.target.value); setTurmaFilter('') }}>
                                 <option value="">Todas</option>
                                 {(escolas || []).map(e => <option key={e.id} value={e.id}>{e.nome}</option>)}
+                            </select>
+                        </div>
+                        <div className={`col-12 ${showMunicipioFilter ? 'col-lg-3' : 'col-lg-2'}`}>
+                            <label className="form-label text-muted small mb-1">Série</label>
+                            <select className="form-select" value={serieFilter} onChange={e => setSerieFilter(e.target.value)}>
+                                <option value="">Todas</option>
+                                {(series || []).map(s => {
+                                    const val = typeof s === 'string' ? s : (s as any)?.descricao || (s as any)?.nome || String(s);
+                                    return <option key={val} value={val}>{val}</option>;
+                                })}
                             </select>
                         </div>
                         <div className={`col-12 ${showMunicipioFilter ? 'col-lg-3' : 'col-lg-2'}`}>

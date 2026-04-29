@@ -357,8 +357,12 @@ export const alunosApi = {
     delete: (id: number, token?: string | null) =>
         request<void>(`/alunos/${id}`, { method: 'DELETE', token }),
 
-    startImport: (file: File, token?: string | null) =>
-        uploadFile<{ jobId: string }>('/alunos/import', file, 'file', token),
+    startImport: (file: File, municipioId?: number | null, token?: string | null) => {
+        const path = municipioId != null
+            ? `/alunos/import?municipioId=${municipioId}`
+            : '/alunos/import'
+        return uploadFile<{ jobId: string }>(path, file, 'file', token)
+    },
 
     getImportProgress: (jobId: string, token?: string | null) =>
         request<ImportJobProgress>(`/alunos/import/${jobId}`, { token }),
