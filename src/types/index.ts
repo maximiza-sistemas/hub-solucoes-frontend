@@ -12,6 +12,7 @@ export interface AuthResponse {
     municipio: string
     accessToken: string
     refreshToken: string
+    primeiroAcesso?: boolean
 }
 
 export interface AuthUser {
@@ -21,6 +22,7 @@ export interface AuthUser {
     role: string
     municipio: string
     municipioId?: number
+    primeiroAcesso?: boolean
 }
 
 export interface RegisterData {

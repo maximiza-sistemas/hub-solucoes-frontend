@@ -42,6 +42,7 @@ export function LoginPage() {
                 email: response.email,
                 role: response.role,
                 municipio: response.municipio,
+                primeiroAcesso: response.primeiroAcesso,
             }
 
             // Resolve municipioId by fetching municipios and finding by name
@@ -61,7 +62,9 @@ export function LoginPage() {
 
             login(user, response.accessToken, response.refreshToken)
 
-            if (response.role === 'SUPERADMIN' || response.role === 'ADMIN') {
+            if (response.primeiroAcesso) {
+                navigate('/trocar-senha-inicial')
+            } else if (response.role === 'SUPERADMIN' || response.role === 'ADMIN') {
                 navigate('/admin/dashboard')
             } else if (user.municipioId) {
                 navigate(`/municipio/${user.municipioId}/dashboard`)

@@ -8,7 +8,7 @@ import { MainLayout } from '@/components/layout'
 import { LandingPage } from '@/pages/landing'
 
 // Auth Pages
-import { LoginPage } from '@/pages/auth'
+import { LoginPage, TrocarSenhaInicialPage } from '@/pages/auth'
 
 // Admin Pages
 import {
@@ -40,10 +40,28 @@ import {
 import { useAuthStore } from '@/stores'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated } = useAuthStore()
+  const { isAuthenticated, user } = useAuthStore()
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />
+  }
+
+  if (user?.primeiroAcesso) {
+    return <Navigate to="/trocar-senha-inicial" replace />
+  }
+
+  return <>{children}</>
+}
+
+function FirstAccessRoute({ children }: { children: React.ReactNode }) {
+  const { isAuthenticated, user } = useAuthStore()
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />
+  }
+
+  if (!user?.primeiroAcesso) {
+    return <Navigate to="/" replace />
   }
 
   return <>{children}</>
@@ -88,6 +106,16 @@ export default function App() {
       <Routes>
         {/* Public Routes */}
         <Route path="/login" element={<LoginPage />} />
+
+        {/* First Access — must change default password */}
+        <Route
+          path="/trocar-senha-inicial"
+          element={
+            <FirstAccessRoute>
+              <TrocarSenhaInicialPage />
+            </FirstAccessRoute>
+          }
+        />
 
         {/* Protected Routes */}
         <Route
