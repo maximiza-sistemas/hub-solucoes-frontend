@@ -32,16 +32,15 @@ export function TrocarSenhaInicialPage() {
         setIsLoading(true)
         try {
             await usuariosApi.alterarSenha(user.id, { senhaAtual, novaSenha }, accessToken)
+
+            let target = '/admin/dashboard'
+            if (user.role !== 'SUPERADMIN' && user.role !== 'ADMIN' && user.municipioId) {
+                target = `/municipio/${user.municipioId}/dashboard`
+            }
+
+            navigate(target, { replace: true })
             updateUser({ primeiroAcesso: false })
             toast.success('Senha alterada com sucesso!')
-
-            if (user.role === 'SUPERADMIN' || user.role === 'ADMIN') {
-                navigate('/admin/dashboard')
-            } else if (user.municipioId) {
-                navigate(`/municipio/${user.municipioId}/dashboard`)
-            } else {
-                navigate('/admin/dashboard')
-            }
         } catch (err) {
             const message = (err as Error).message || 'Erro ao alterar senha'
             toast.error(message)

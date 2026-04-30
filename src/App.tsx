@@ -61,7 +61,13 @@ function FirstAccessRoute({ children }: { children: React.ReactNode }) {
   }
 
   if (!user?.primeiroAcesso) {
-    return <Navigate to="/" replace />
+    if (user?.role === 'SUPERADMIN' || user?.role === 'ADMIN') {
+      return <Navigate to="/admin/dashboard" replace />
+    }
+    if (user?.municipioId) {
+      return <Navigate to={`/municipio/${user.municipioId}/dashboard`} replace />
+    }
+    return <Navigate to="/admin/dashboard" replace />
   }
 
   return <>{children}</>
