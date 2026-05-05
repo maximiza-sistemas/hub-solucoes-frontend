@@ -3,12 +3,12 @@
 @import 'bootstrap-icons/font/bootstrap-icons.css';
 
 /* =====================================================
-   MAXIMIZA - ECOSSISTEMA DE SOLUÇÕES EDUCACIONAIS
+   HUB - ECOSSISTEMA DE SOLUÇÕES EDUCACIONAIS
    Paleta: Azul Escuro Navy + Azul Claro Ciano
    ===================================================== */
 
 :root {
-    /* Cores MAXIMIZA */
+    /* Cores HUB */
     --primary-color: #1e3a5f;
     --primary-dark: #152a45;
     --primary-light: #2a4d7a;
@@ -91,7 +91,7 @@ body {
     background-color: var(--primary-color) !important;
 }
 
-/* Sidebar Styles - MAXIMIZA Theme */
+/* Sidebar Styles - HUB Theme */
 .sidebar {
     width: var(--sidebar-width);
     min-height: 100vh;
@@ -250,7 +250,7 @@ body {
     box-shadow: 0 12px 30px rgba(0, 168, 232, 0.15) !important;
 }
 
-/* Scrollbar - MAXIMIZA Theme */
+/* Scrollbar - HUB Theme */
 ::-webkit-scrollbar {
     width: 8px;
     height: 8px;
@@ -613,11 +613,6 @@ body {
     background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
 }
 
-/* Custom Card Shadows */
-.shadow-maximiza {
-    box-shadow: 0 8px 30px rgba(0, 168, 232, 0.2);
-}
-
 /* Modal Headers */
 .modal-header.bg-primary {
     background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%) !important;
@@ -641,7 +636,7 @@ body {
 }
 
 /* =====================================================
-   LANDING PAGE STYLES - MAXIMIZA
+   LANDING PAGE STYLES - HUB
    ===================================================== */
 
 .landing-page {

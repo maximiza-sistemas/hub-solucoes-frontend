@@ -281,7 +281,8 @@ export default function App() {
         <Route path="/admin" element={<Navigate to="/admin/municipios" replace />} />
 
         {/* Default Redirect */}
-        <Route path="/" element={<LandingPage />} />
+        <Route path="/" element={<Navigate to="/login" replace />} />
+        <Route path="/landing" element={<LandingPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>

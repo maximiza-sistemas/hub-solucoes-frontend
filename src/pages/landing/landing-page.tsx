@@ -186,7 +186,7 @@ export function LandingPage() {
 
     const testimonials = [
         {
-            quote: 'A MAXIMIZA transformou a gestão educacional do nosso município. Conseguimos identificar as dificuldades dos alunos e agir de forma precisa.',
+            quote: 'O HUB transformou a gestão educacional do nosso município. Conseguimos identificar as dificuldades dos alunos e agir de forma precisa.',
             author: 'Maria Silva',
             role: 'Secretária de Educação',
             city: 'São Luís - MA',
@@ -308,7 +308,7 @@ export function LandingPage() {
                             <div className="hero-image-container">
                                 <img
                                     src="/hero-students.png"
-                                    alt="Estudantes usando tecnologia educacional MAXIMIZA"
+                                    alt="Estudantes usando tecnologia educacional HUB"
                                     loading="eager"
                                 />
                                 <div className="hero-image-overlay"></div>
@@ -348,7 +348,7 @@ export function LandingPage() {
             <section className="features-section py-5">
                 <div className="container">
                     <div className="text-center mb-5 animate-on-scroll fade-up">
-                        <span className="section-badge">Por que escolher a MAXIMIZA?</span>
+                        <span className="section-badge">Por que escolher o HUB?</span>
                         <h2 className="section-title">
                             Recursos que fazem a <span className="text-gradient">Diferença</span>
                         </h2>
@@ -377,7 +377,7 @@ export function LandingPage() {
                             <div className="about-image-wrapper animate-on-scroll fade-left">
                                 <img
                                     src="/about-educators.png"
-                                    alt="Gestores educacionais analisando dados MAXIMIZA"
+                                    alt="Gestores educacionais analisando dados HUB"
                                     loading="lazy"
                                 />
                                 <div className="about-floating-stats">
@@ -397,12 +397,12 @@ export function LandingPage() {
                             </div>
                         </div>
                         <div className="col-lg-6 animate-on-scroll fade-right">
-                            <span className="section-badge">Sobre a MAXIMIZA</span>
+                            <span className="section-badge">Sobre o HUB</span>
                             <h2 className="section-title">
                                 Democratizando a <span className="text-gradient">Educação de Qualidade</span>
                             </h2>
                             <p className="section-description">
-                                A MAXIMIZA é uma EdTech brasileira focada em transformar a educação pública
+                                O HUB é uma EdTech brasileira focada em transformar a educação pública
                                 através de soluções tecnológicas inovadoras. Trabalhamos lado a lado com
                                 secretarias municipais de educação para garantir que cada aluno tenha
                                 acesso a um ensino de excelência.
@@ -729,7 +729,7 @@ export function LandingPage() {
                     <div className="footer-bottom">
                         <div className="row align-items-center">
                             <div className="col-md-6">
-                                <p>&copy; 2026 MAXIMIZA Soluções Educacionais. Todos os direitos reservados.</p>
+                                <p>&copy; 2026 HUB Soluções Educacionais. Todos os direitos reservados.</p>
                             </div>
                             <div className="col-md-6 text-md-end">
                                 <a href="#" className="footer-link me-3">Política de Privacidade</a>

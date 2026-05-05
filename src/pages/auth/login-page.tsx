@@ -162,13 +162,6 @@ export function LoginPage() {
                                 </form>
                             </div>
                         </div>
-
-                        {/* Footer */}
-                        <div className="text-center mt-4">
-                            <p className="small text-white-50 mb-0">
-                                © 2026 MAXIMIZA Soluções Educacionais
-                            </p>
-                        </div>
                     </div>
                 </div>
             </div>
