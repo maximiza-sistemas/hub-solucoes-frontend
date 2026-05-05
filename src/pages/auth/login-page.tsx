@@ -92,14 +92,11 @@ export function LoginPage() {
                         <div className="card shadow-lg border-0 animate-fadeIn"
                             style={{ borderRadius: '1rem', overflow: 'hidden' }}>
                             <div className="card-body p-4 p-md-5">
-                                {/* Logo MAXIMIZA */}
                                 <div className="text-center mb-4">
-                                    <img
-                                        src="/logo-maximiza.png"
-                                        alt="MAXIMIZA Soluções Educacionais"
-                                        className="mb-3"
-                                        style={{ maxHeight: 60, width: 'auto' }}
-                                    />
+                                    <div className="d-flex align-items-center justify-content-center gap-2 mb-3" style={{ color: '#1e3a5f' }}>
+                                        <i className="bi bi-mortarboard-fill" style={{ fontSize: 48 }}></i>
+                                        <span className="fw-bold" style={{ fontSize: 36, letterSpacing: 2 }}>HUB</span>
+                                    </div>
                                     <p className="text-muted small mb-0">
                                         Ecossistema de Gestão Educacional
                                     </p>

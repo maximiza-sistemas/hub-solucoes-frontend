@@ -51,19 +51,11 @@ export function Sidebar() {
 
     return (
         <div className={`sidebar d-flex flex-column ${isCollapsed ? 'collapsed' : ''}`}>
-            {/* Header com Logo MAXIMIZA */}
             <div className="sidebar-header">
-                {!isCollapsed ? (
-                    <img
-                        src="/logo-maximiza.png"
-                        alt="MAXIMIZA Soluções Educacionais"
-                        className="sidebar-logo"
-                        style={{ maxHeight: 40, width: 'auto' }}
-                    />
-                ) : (
-                    <div className="d-flex align-items-center justify-content-center rounded"
-                        style={{ width: 40, height: 40, background: 'linear-gradient(135deg, #00a8e8 0%, #1e3a5f 100%)' }}>
-                        <span className="fw-bold text-white" style={{ fontSize: 16 }}>M</span>
+                {!isCollapsed && (
+                    <div className="d-flex align-items-center gap-2">
+                        <i className="bi bi-mortarboard-fill text-white" style={{ fontSize: 28 }}></i>
+                        <span className="fw-bold text-white" style={{ fontSize: 20, letterSpacing: 1 }}>HUB</span>
                     </div>
                 )}
                 <button

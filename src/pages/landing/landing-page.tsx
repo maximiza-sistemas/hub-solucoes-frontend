@@ -215,12 +215,9 @@ export function LandingPage() {
             {/* Navbar */}
             <nav className="navbar navbar-expand-lg fixed-top landing-navbar">
                 <div className="container">
-                    <a href="#" className="navbar-brand">
-                        <img
-                            src="/logo-maximiza.png"
-                            alt="MAXIMIZA"
-                            height="40"
-                        />
+                    <a href="#" className="navbar-brand d-flex align-items-center gap-2">
+                        <i className="bi bi-mortarboard-fill" style={{ fontSize: 32 }}></i>
+                        <span className="fw-bold" style={{ fontSize: 24, letterSpacing: 1.5 }}>HUB</span>
                     </a>
                     <button
                         className="navbar-toggler"
@@ -675,7 +672,10 @@ export function LandingPage() {
                 <div className="container">
                     <div className="row g-4">
                         <div className="col-lg-4">
-                            <img src="/logo-maximiza.png" alt="MAXIMIZA" height="40" className="mb-3" />
+                            <div className="d-flex align-items-center gap-2 mb-3">
+                                <i className="bi bi-mortarboard-fill" style={{ fontSize: 36 }}></i>
+                                <span className="fw-bold" style={{ fontSize: 28, letterSpacing: 1.5 }}>HUB</span>
+                            </div>
                             <p className="footer-description">
                                 Transformando a educação pública brasileira através de
                                 tecnologia e inovação pedagógica.

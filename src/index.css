@@ -118,11 +118,6 @@ body {
     background: rgba(0, 168, 232, 0.1);
 }
 
-.sidebar-logo {
-    max-height: 45px;
-    width: auto;
-}
-
 .sidebar-nav {
     padding: 1rem 0;
 }
