@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useDataStore, useAuthStore, useUsuarioImportJobStore } from '@/stores'
-import { Pagination, PageLoading, TableLoading } from '@/components/ui'
+import { Pagination, PageLoading, TableLoading, SearchableSelect } from '@/components/ui'
 import { UsuarioImportModal } from '@/components/usuario-import-modal'
 import { usuariosApi } from '@/services/api'
 import { toast } from 'sonner'
@@ -33,6 +33,7 @@ export function UsuariosPage() {
     const [debouncedEmail, setDebouncedEmail] = useState('')
     const [ativoFilter, setAtivoFilter] = useState('')
     const [municipioFilter, setMunicipioFilter] = useState('')
+    const [tipoUsuarioFilter, setTipoUsuarioFilter] = useState('')
     const [currentPage, setCurrentPage] = useState(0)
     const [pageSize, setPageSize] = useState(10)
     const [activeTab, setActiveTab] = useState<'usuarios' | 'papeis'>('usuarios')
@@ -91,15 +92,16 @@ export function UsuariosPage() {
 
     useEffect(() => {
         setCurrentPage(0)
-    }, [debouncedNome, debouncedEmail, ativoFilter, municipioFilter, pageSize])
+    }, [debouncedNome, debouncedEmail, ativoFilter, municipioFilter, tipoUsuarioFilter, pageSize])
 
     const usuariosPagination = pagination.usuarios || { page: 0, size: pageSize, totalElements: 0, totalPages: 0 }
 
-    const refetchUsuarios = async (page = currentPage, overrides?: { nome?: string; email?: string; ativo?: string; municipio?: string }) => {
+    const refetchUsuarios = async (page = currentPage, overrides?: { nome?: string; email?: string; ativo?: string; municipio?: string; tipoUsuario?: string }) => {
         const nomeParam = overrides?.nome !== undefined ? overrides.nome : debouncedNome
         const emailParam = overrides?.email !== undefined ? overrides.email : debouncedEmail
         const ativoParam = overrides?.ativo !== undefined ? overrides.ativo : ativoFilter
         const municipioParam = overrides?.municipio !== undefined ? overrides.municipio : municipioFilter
+        const tipoUsuarioParam = overrides?.tipoUsuario !== undefined ? overrides.tipoUsuario : tipoUsuarioFilter
 
         setIsFetching(true)
         try {
@@ -110,6 +112,7 @@ export function UsuariosPage() {
                 email: emailParam || undefined,
                 ativo: ativoParam === '' ? undefined : ativoParam,
                 municipioId: showMunicipioFilter && municipioParam ? Number(municipioParam) : undefined,
+                tipoUsuarioId: tipoUsuarioParam ? Number(tipoUsuarioParam) : undefined,
             })
         } finally {
             setIsFetching(false)
@@ -118,7 +121,7 @@ export function UsuariosPage() {
 
     useEffect(() => {
         if (!initialLoading) refetchUsuarios()
-    }, [currentPage, debouncedNome, debouncedEmail, ativoFilter, municipioFilter, pageSize])
+    }, [currentPage, debouncedNome, debouncedEmail, ativoFilter, municipioFilter, tipoUsuarioFilter, pageSize])
 
     const importLastCompletedAt = useUsuarioImportJobStore(s => s.lastCompletedAt)
     useEffect(() => {
@@ -468,21 +471,21 @@ export function UsuariosPage() {
                     <div className="card border-0 shadow-sm mb-4">
                         <div className="card-body py-3">
                             <div className="row gy-3 gx-3 align-items-end">
-                                <div className={`col-12 ${showMunicipioFilter ? 'col-lg-5' : 'col-lg-6'}`}>
+                                <div className="col-12 col-lg-5">
                                     <label className="form-label text-muted small mb-1">Nome</label>
                                     <div className="input-group">
                                         <span className="input-group-text bg-white border-end-0"><i className="bi bi-search text-muted"></i></span>
                                         <input type="text" className="form-control border-start-0 rounded-start-0" placeholder="Buscar por nome..." value={nomeTerm} onChange={(e) => setNomeTerm(e.target.value)} />
                                     </div>
                                 </div>
-                                <div className={`col-12 ${showMunicipioFilter ? 'col-lg-3' : 'col-lg-4'}`}>
+                                <div className="col-12 col-lg-4">
                                     <label className="form-label text-muted small mb-1">Email</label>
                                     <div className="input-group">
                                         <span className="input-group-text bg-white border-end-0"><i className="bi bi-envelope text-muted"></i></span>
                                         <input type="text" className="form-control border-start-0 rounded-start-0" placeholder="Buscar por email..." value={emailTerm} onChange={(e) => setEmailTerm(e.target.value)} />
                                     </div>
                                 </div>
-                                <div className="col-6 col-lg-2">
+                                <div className="col-6 col-lg-3">
                                     <label className="form-label text-muted small mb-1">Status</label>
                                     <select className="form-select" value={ativoFilter} onChange={(e) => setAtivoFilter(e.target.value)}>
                                         <option value="">Todos</option>
@@ -490,8 +493,19 @@ export function UsuariosPage() {
                                         <option value="false">Inativos</option>
                                     </select>
                                 </div>
+                                <div className={`col-6 ${showMunicipioFilter ? 'col-lg-4' : 'col-lg-6'}`}>
+                                    <label className="form-label text-muted small mb-1">Perfil</label>
+                                    <SearchableSelect
+                                        options={roles.map(r => ({ id: r.id, label: r.descricaoPtBr || r.descricao || r.nome }))}
+                                        value={tipoUsuarioFilter}
+                                        onChange={setTipoUsuarioFilter}
+                                        placeholder="Todos"
+                                        emptyOptionLabel="Todos"
+                                        emptyMessage="Nenhum perfil encontrado"
+                                    />
+                                </div>
                                 {showMunicipioFilter && (
-                                    <div className="col-6 col-lg-2">
+                                    <div className="col-12 col-lg-4">
                                         <label className="form-label text-muted small mb-1">Município</label>
                                         <select className="form-select" value={municipioFilter} onChange={(e) => setMunicipioFilter(e.target.value)}>
                                             <option value="">Todos</option>
@@ -504,7 +518,7 @@ export function UsuariosPage() {
                                 <div className="col-12 d-flex justify-content-end">
                                     <label className="form-label text-muted small mb-1">&nbsp;</label>
                                     <div className="d-flex justify-content-end gap-2">
-                                        <button className="btn btn-primary" onClick={() => { setCurrentPage(0); setDebouncedNome(nomeTerm); setDebouncedEmail(emailTerm); refetchUsuarios(0, { nome: nomeTerm, email: emailTerm, ativo: ativoFilter, municipio: showMunicipioFilter ? municipioFilter : '' }) }}>
+                                        <button className="btn btn-primary" onClick={() => { setCurrentPage(0); setDebouncedNome(nomeTerm); setDebouncedEmail(emailTerm); refetchUsuarios(0, { nome: nomeTerm, email: emailTerm, ativo: ativoFilter, municipio: showMunicipioFilter ? municipioFilter : '', tipoUsuario: tipoUsuarioFilter }) }}>
                                             <i className="bi bi-search me-1"></i>Aplicar
                                         </button>
                                         <button className="btn btn-outline-secondary" onClick={() => {
@@ -514,8 +528,9 @@ export function UsuariosPage() {
                                             setDebouncedEmail('')
                                             setAtivoFilter('')
                                             setMunicipioFilter('')
+                                            setTipoUsuarioFilter('')
                                             setCurrentPage(0)
-                                            refetchUsuarios(0, { nome: '', email: '', ativo: '', municipio: '' })
+                                            refetchUsuarios(0, { nome: '', email: '', ativo: '', municipio: '', tipoUsuario: '' })
                                         }}>
                                             <i className="bi bi-arrow-counterclockwise"></i> Limpar
                                         </button>

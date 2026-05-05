@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useDataStore, useImportJobStore } from '@/stores'
-import { Pagination, PageLoading, TableLoading } from '@/components/ui'
-import { enumsApi, escolasApi, turmasApi } from '@/services/api'
+import { Pagination, PageLoading, TableLoading, SearchableSelect } from '@/components/ui'
+import { enumsApi } from '@/services/api'
 import { useAuthStore } from '@/stores/auth-store'
-import type { Aluno, Escola, Turma } from '@/types'
+import type { Aluno } from '@/types'
 import { formatDateBR } from '@/lib/utils'
 import { AlunoImportModal } from '@/components/aluno-import-modal'
 import { downloadAlunoTemplate } from '@/lib/aluno-template'
@@ -84,30 +84,6 @@ export function MunicipioAlunosPage() {
     const [initialLoading, setInitialLoading] = useState(true)
     const [isFetching, setIsFetching] = useState(false)
     const [formErrors, setFormErrors] = useState<Record<string, string>>({})
-    const [formEscolas, setFormEscolas] = useState<Escola[]>([])
-    const [formTurmas, setFormTurmas] = useState<Turma[]>([])
-
-    useEffect(() => {
-        const token = useAuthStore.getState().accessToken
-        const params: Record<string, any> = { size: 1000 }
-        if (isSuperAdmin) {
-            const targetMunId = formData.municipioId ? Number(formData.municipioId) : munId
-            if (!targetMunId) { setFormEscolas([]); setFormTurmas([]); return }
-            params.municipioId = targetMunId
-        }
-        escolasApi.list(token, params)
-            .then(res => {
-                const content = Array.isArray(res?.content) ? res.content : Array.isArray(res) ? res : []
-                setFormEscolas(content)
-            })
-            .catch(console.error)
-        turmasApi.list(token, params)
-            .then(res => {
-                const content = Array.isArray(res?.content) ? res.content : Array.isArray(res) ? res : []
-                setFormTurmas(content)
-            })
-            .catch(console.error)
-    }, [formData.municipioId, munId, isSuperAdmin])
 
     useEffect(() => {
         const token = useAuthStore.getState().accessToken
@@ -224,21 +200,10 @@ export function MunicipioAlunosPage() {
         })
         setFormErrors({})
         setError(null)
-        // Pre-load escolas and turmas for the aluno's municipality
+        // Pre-load escolas and turmas for the aluno's municipality (via store)
         if (alunoMunicipioId) {
-            const token = useAuthStore.getState().accessToken
-            escolasApi.list(token, { municipioId: Number(alunoMunicipioId), size: 1000 })
-                .then(res => {
-                    const content = Array.isArray(res?.content) ? res.content : Array.isArray(res) ? res : []
-                    setFormEscolas(content)
-                })
-                .catch(console.error)
-            turmasApi.list(token, { municipioId: Number(alunoMunicipioId), size: 1000 })
-                .then(res => {
-                    const content = Array.isArray(res?.content) ? res.content : Array.isArray(res) ? res : []
-                    setFormTurmas(content)
-                })
-                .catch(console.error)
+            fetchEscolas(Number(alunoMunicipioId))
+            fetchTurmas(Number(alunoMunicipioId))
         }
         setShowEditModal(true)
     }
@@ -352,7 +317,7 @@ export function MunicipioAlunosPage() {
             {isSuperAdmin && (
                 <div className="col-md-12">
                     <label className="form-label fw-medium">Município <span className="text-danger">*</span></label>
-                    <select className="form-select" value={formData.municipioId} onChange={(e) => setFormData({ ...formData, municipioId: e.target.value, escolaId: '', turmaId: '' })} disabled={!!munId} required>
+                    <select className="form-select" value={formData.municipioId} onChange={(e) => { const v = e.target.value; setFormData({ ...formData, municipioId: v, escolaId: '', turmaId: '' }); if (v) { fetchEscolas(Number(v)); fetchTurmas(Number(v)) } }} disabled={!!munId} required>
                         <option value="">Selecione um município</option>
                         {municipios.map(m => <option key={m.id} value={m.id}>{m.nome} - {m.uf}</option>)}
                     </select>
@@ -360,19 +325,30 @@ export function MunicipioAlunosPage() {
             )}
             <div className="col-md-6">
                 <label className="form-label fw-medium">Escola <span className="text-danger">*</span></label>
-                <select className={`form-select ${formErrors.escolaId ? 'is-invalid' : ''}`} value={formData.escolaId} onChange={(e) => setFormData({ ...formData, escolaId: e.target.value, turmaId: '' })}>
-                    <option value="">Selecione uma escola</option>
-                    {formEscolas.map(escola => <option key={escola.id} value={escola.id}>{escola.nome}</option>)}
-                </select>
-                {formErrors.escolaId && <div className="invalid-feedback">{formErrors.escolaId}</div>}
+                <SearchableSelect
+                    options={escolas.map(escola => ({ id: escola.id, label: escola.nome }))}
+                    value={formData.escolaId}
+                    onChange={v => setFormData({ ...formData, escolaId: v, turmaId: '' })}
+                    placeholder="Pesquisar escola..."
+                    emptyMessage="Nenhuma escola encontrada"
+                    isInvalid={!!formErrors.escolaId}
+                    required
+                />
+                {formErrors.escolaId && <div className="invalid-feedback d-block">{formErrors.escolaId}</div>}
             </div>
             <div className="col-md-6">
                 <label className="form-label fw-medium">Turma <span className="text-danger">*</span></label>
-                <select className={`form-select ${formErrors.turmaId ? 'is-invalid' : ''}`} value={formData.turmaId} onChange={(e) => setFormData({ ...formData, turmaId: e.target.value })}>
-                    <option value="">Selecione uma turma</option>
-                    {(formData.escolaId ? formTurmas.filter(t => String(t.escolaId) === formData.escolaId) : formTurmas).map(turma => <option key={turma.id} value={turma.id}>{turma.nome} - {turma.serie}</option>)}
-                </select>
-                {formErrors.turmaId && <div className="invalid-feedback">{formErrors.turmaId}</div>}
+                <SearchableSelect
+                    options={(formData.escolaId ? turmas.filter(t => String(t.escolaId) === formData.escolaId) : turmas).map(turma => ({ id: turma.id, label: `${turma.nome} - ${turma.serie}` }))}
+                    value={formData.turmaId}
+                    onChange={v => setFormData({ ...formData, turmaId: v })}
+                    placeholder={formData.escolaId ? 'Pesquisar turma...' : 'Selecione uma escola'}
+                    emptyMessage="Nenhuma turma encontrada"
+                    disabled={!formData.escolaId}
+                    isInvalid={!!formErrors.turmaId}
+                    required
+                />
+                {formErrors.turmaId && <div className="invalid-feedback d-block">{formErrors.turmaId}</div>}
             </div>
         </div>
     )
@@ -434,10 +410,14 @@ export function MunicipioAlunosPage() {
                         )}
                         <div className={`col-12 ${showMunicipioFilter ? 'col-lg-3' : 'col-lg-2'}`}>
                             <label className="form-label text-muted small mb-1">Escola</label>
-                            <select className="form-select" value={escolaFilter} onChange={e => { setEscolaFilter(e.target.value); setTurmaFilter('') }}>
-                                <option value="">Todas</option>
-                                {(escolas || []).map(e => <option key={e.id} value={e.id}>{e.nome}</option>)}
-                            </select>
+                            <SearchableSelect
+                                options={(escolas || []).map(e => ({ id: e.id, label: e.nome }))}
+                                value={escolaFilter}
+                                onChange={v => { setEscolaFilter(v); setTurmaFilter('') }}
+                                placeholder="Todas"
+                                emptyOptionLabel="Todas"
+                                emptyMessage="Nenhuma escola encontrada"
+                            />
                         </div>
                         <div className={`col-12 ${showMunicipioFilter ? 'col-lg-3' : 'col-lg-2'}`}>
                             <label className="form-label text-muted small mb-1">Série</label>
@@ -451,10 +431,15 @@ export function MunicipioAlunosPage() {
                         </div>
                         <div className={`col-12 ${showMunicipioFilter ? 'col-lg-3' : 'col-lg-2'}`}>
                             <label className="form-label text-muted small mb-1">Turma</label>
-                            <select className="form-select" value={turmaFilter} onChange={e => setTurmaFilter(e.target.value)} disabled={!escolaFilter}>
-                                <option value="">{escolaFilter ? 'Todas' : 'Selecione uma escola'}</option>
-                                {(turmas || []).filter(t => escolaFilter ? String(t.escolaId) === escolaFilter : true).map(t => <option key={t.id} value={t.id}>{t.nome}</option>)}
-                            </select>
+                            <SearchableSelect
+                                options={(turmas || []).filter(t => escolaFilter ? String(t.escolaId) === escolaFilter : true).map(t => ({ id: t.id, label: t.nome }))}
+                                value={turmaFilter}
+                                onChange={setTurmaFilter}
+                                placeholder={escolaFilter ? 'Todas' : 'Selecione uma escola'}
+                                emptyOptionLabel={escolaFilter ? 'Todas' : undefined}
+                                emptyMessage="Nenhuma turma encontrada"
+                                disabled={!escolaFilter}
+                            />
                         </div>
                         <div className="col-12 mt-3">
                             <div className="d-flex justify-content-end align-items-center gap-2">

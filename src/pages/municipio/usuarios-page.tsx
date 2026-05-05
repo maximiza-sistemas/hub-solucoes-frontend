@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useDataStore, useAuthStore, useUsuarioImportJobStore } from '@/stores'
-import { Pagination, PageLoading, TableLoading } from '@/components/ui'
+import { Pagination, PageLoading, TableLoading, SearchableSelect } from '@/components/ui'
 import { UsuarioImportModal } from '@/components/usuario-import-modal'
 import type { Usuario } from '@/types'
 
@@ -30,6 +30,7 @@ export function MunicipioUsuariosPage() {
     const [emailTerm, setEmailTerm] = useState('')
     const [debouncedEmail, setDebouncedEmail] = useState('')
     const [ativoFilter, setAtivoFilter] = useState('')
+    const [tipoUsuarioFilter, setTipoUsuarioFilter] = useState('')
     const [currentPage, setCurrentPage] = useState(0)
     const [pageSize, setPageSize] = useState(10)
 
@@ -72,12 +73,13 @@ export function MunicipioUsuariosPage() {
 
     useEffect(() => {
         setCurrentPage(0)
-    }, [debouncedNome, debouncedEmail, ativoFilter, pageSize, munId])
+    }, [debouncedNome, debouncedEmail, ativoFilter, tipoUsuarioFilter, pageSize, munId])
 
-    const refetchUsuarios = async (page = currentPage, overrides?: { nome?: string; email?: string; ativo?: string }) => {
+    const refetchUsuarios = async (page = currentPage, overrides?: { nome?: string; email?: string; ativo?: string; tipoUsuario?: string }) => {
         const nomeParam = overrides?.nome !== undefined ? overrides.nome : debouncedNome
         const emailParam = overrides?.email !== undefined ? overrides.email : debouncedEmail
         const ativoParam = overrides?.ativo !== undefined ? overrides.ativo : ativoFilter
+        const tipoUsuarioParam = overrides?.tipoUsuario !== undefined ? overrides.tipoUsuario : tipoUsuarioFilter
 
         setIsFetching(true)
         try {
@@ -88,6 +90,7 @@ export function MunicipioUsuariosPage() {
                 nome: nomeParam || undefined,
                 email: emailParam || undefined,
                 ativo: ativoParam === '' ? undefined : ativoParam,
+                tipoUsuarioId: tipoUsuarioParam ? Number(tipoUsuarioParam) : undefined,
             })
         } finally {
             setIsFetching(false)
@@ -96,7 +99,7 @@ export function MunicipioUsuariosPage() {
 
     useEffect(() => {
         if (!initialLoading) refetchUsuarios()
-    }, [munId, currentPage, debouncedNome, debouncedEmail, ativoFilter, pageSize])
+    }, [munId, currentPage, debouncedNome, debouncedEmail, ativoFilter, tipoUsuarioFilter, pageSize])
 
     const importLastCompletedAt = useUsuarioImportJobStore(s => s.lastCompletedAt)
     useEffect(() => {
@@ -277,7 +280,7 @@ export function MunicipioUsuariosPage() {
             <div className="card border-0 shadow-sm mb-4">
                 <div className="card-body py-3">
                     <div className="row gy-3 gx-3 align-items-end">
-                        <div className="col-12 col-lg-5">
+                        <div className="col-12 col-lg-4">
                             <label className="form-label text-muted small mb-1">Nome</label>
                             <div className="input-group">
                                 <span className="input-group-text bg-white border-end-0"><i className="bi bi-search text-muted"></i></span>
@@ -299,10 +302,20 @@ export function MunicipioUsuariosPage() {
                                 <option value="false">Inativos</option>
                             </select>
                         </div>
-                        <div className="col-12 col-lg-2">
-                            <label className="form-label text-muted small mb-1">&nbsp;</label>
+                        <div className="col-6 col-lg-3">
+                            <label className="form-label text-muted small mb-1">Perfil</label>
+                            <SearchableSelect
+                                options={roles.map(r => ({ id: r.id, label: r.descricaoPtBr || r.descricao || r.nome }))}
+                                value={tipoUsuarioFilter}
+                                onChange={setTipoUsuarioFilter}
+                                placeholder="Todos"
+                                emptyOptionLabel="Todos"
+                                emptyMessage="Nenhum perfil encontrado"
+                            />
+                        </div>
+                        <div className="col-12">
                             <div className="d-flex justify-content-end align-items-center gap-2 flex-wrap">
-                                <button className="btn btn-primary" onClick={() => { setCurrentPage(0); setDebouncedNome(nomeTerm); setDebouncedEmail(emailTerm); refetchUsuarios(0, { nome: nomeTerm, email: emailTerm, ativo: ativoFilter }) }}>
+                                <button className="btn btn-primary" onClick={() => { setCurrentPage(0); setDebouncedNome(nomeTerm); setDebouncedEmail(emailTerm); refetchUsuarios(0, { nome: nomeTerm, email: emailTerm, ativo: ativoFilter, tipoUsuario: tipoUsuarioFilter }) }}>
                                     <i className="bi bi-search me-1"></i>Aplicar
                                 </button>
                                 <button className="btn btn-outline-secondary" onClick={() => {
@@ -311,8 +324,9 @@ export function MunicipioUsuariosPage() {
                                     setDebouncedNome('')
                                     setDebouncedEmail('')
                                     setAtivoFilter('')
+                                    setTipoUsuarioFilter('')
                                     setCurrentPage(0)
-                                    refetchUsuarios(0, { nome: '', email: '', ativo: '' })
+                                    refetchUsuarios(0, { nome: '', email: '', ativo: '', tipoUsuario: '' })
                                 }}>
                                     <i className="bi bi-arrow-counterclockwise"></i> Limpar
                                 </button>

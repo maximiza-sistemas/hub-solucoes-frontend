@@ -1,10 +1,10 @@
 import { useState, useEffect, type FormEvent } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useDataStore } from '@/stores'
-import { Pagination, PageLoading, TableLoading } from '@/components/ui'
-import { enumsApi, escolasApi } from '@/services/api'
+import { Pagination, PageLoading, TableLoading, SearchableSelect } from '@/components/ui'
+import { enumsApi } from '@/services/api'
 import { useAuthStore } from '@/stores/auth-store'
-import type { Turma, Escola } from '@/types'
+import type { Turma } from '@/types'
 
 export function MunicipioTurmasPage() {
     const { municipioId } = useParams()
@@ -58,32 +58,14 @@ export function MunicipioTurmasPage() {
 
     // Form
     const [formData, setFormData] = useState({ nome: '', turno: '', serie: '', escolaId: '', municipioId: munId ? String(munId) : '' })
-    const [formEscolas, setFormEscolas] = useState<Escola[]>([])
     const [escolaSearch, setEscolaSearch] = useState('')
-
     const [escolaDropdownOpen, setEscolaDropdownOpen] = useState(false)
 
-    useEffect(() => {
-        const token = useAuthStore.getState().accessToken
-        const params: Record<string, any> = { size: 1000 }
-        if (isSuperAdmin) {
-            const targetMunId = formData.municipioId ? Number(formData.municipioId) : munId
-            if (!targetMunId) { setFormEscolas([]); return }
-            params.municipioId = targetMunId
-        }
-        escolasApi.list(token, params)
-            .then(res => {
-                const content = Array.isArray(res?.content) ? res.content : Array.isArray(res) ? res : []
-                setFormEscolas(content)
-            })
-            .catch(console.error)
-    }, [formData.municipioId, munId, isSuperAdmin])
-
-    const filteredFormEscolas = formEscolas.filter(e =>
+    const filteredFormEscolas = escolas.filter(e =>
         e.nome.toLowerCase().includes(escolaSearch.toLowerCase())
     )
 
-    const selectedEscolaName = formEscolas.find(e => String(e.id) === formData.escolaId)?.nome || ''
+    const selectedEscolaName = escolas.find(e => String(e.id) === formData.escolaId)?.nome || ''
 
     useEffect(() => {
         const escolasPromise = munId ? fetchEscolas(munId) : municipioFilter ? fetchEscolas(Number(municipioFilter)) : fetchEscolas()
@@ -240,10 +222,14 @@ export function MunicipioTurmasPage() {
                         </div>
                         <div className="col-12 col-lg-2">
                             <label className="form-label text-muted small mb-1">Escola</label>
-                            <select className="form-select" value={escolaFilter} onChange={e => setEscolaFilter(e.target.value)}>
-                                <option value="">Todas</option>
-                                {(escolas || []).map(e => <option key={e.id} value={e.id}>{e.nome}</option>)}
-                            </select>
+                            <SearchableSelect
+                                options={(escolas || []).map(e => ({ id: e.id, label: e.nome }))}
+                                value={escolaFilter}
+                                onChange={setEscolaFilter}
+                                placeholder="Todas"
+                                emptyOptionLabel="Todas"
+                                emptyMessage="Nenhuma escola encontrada"
+                            />
                         </div>
                         {showMunicipioFilter && (
                             <div className="col-12 col-lg-2">
@@ -357,7 +343,7 @@ export function MunicipioTurmasPage() {
                                     {isSuperAdmin && (
                                         <div className="mb-3">
                                             <label className="form-label">Município</label>
-                                            <select className="form-select" value={formData.municipioId} onChange={e => setFormData({ ...formData, municipioId: e.target.value, escolaId: '' })} disabled={!!munId} required>
+                                            <select className="form-select" value={formData.municipioId} onChange={e => { const v = e.target.value; setFormData({ ...formData, municipioId: v, escolaId: '' }); setEscolaSearch(''); if (v) fetchEscolas(Number(v)) }} disabled={!!munId} required>
                                                 <option value="">Selecione</option>
                                                 {municipios.map(m => <option key={m.id} value={m.id}>{m.nome} - {m.uf}</option>)}
                                             </select>
@@ -423,7 +409,7 @@ export function MunicipioTurmasPage() {
                                     {isSuperAdmin && (
                                         <div className="mb-3">
                                             <label className="form-label">Município</label>
-                                            <select className="form-select" value={formData.municipioId} onChange={e => setFormData({ ...formData, municipioId: e.target.value, escolaId: '' })} disabled={!!munId} required>
+                                            <select className="form-select" value={formData.municipioId} onChange={e => { const v = e.target.value; setFormData({ ...formData, municipioId: v, escolaId: '' }); setEscolaSearch(''); if (v) fetchEscolas(Number(v)) }} disabled={!!munId} required>
                                                 <option value="">Selecione</option>
                                                 {municipios.map(m => <option key={m.id} value={m.id}>{m.nome} - {m.uf}</option>)}
                                             </select>
