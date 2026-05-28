@@ -14,6 +14,7 @@ import type {
 } from '@/types'
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080'
+const CLIENT_ID = import.meta.env.VITE_CLIENT_ID ?? 'HUB'
 
 interface RequestOptions {
     method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'
@@ -30,6 +31,7 @@ async function request<T>(endpoint: string, options: RequestOptions = {}): Promi
 
     const headers: HeadersInit = {
         'Content-Type': 'application/json',
+        'X-Client-Id': CLIENT_ID,
     }
 
     if (token) {
@@ -126,7 +128,9 @@ async function uploadFile<T>(endpoint: string, file: File, fieldName: string, to
     const formData = new FormData()
     formData.append(fieldName, file)
 
-    const headers: HeadersInit = {}
+    const headers: HeadersInit = {
+        'X-Client-Id': CLIENT_ID,
+    }
     if (token) {
         headers['Authorization'] = `Bearer ${token}`
     }
