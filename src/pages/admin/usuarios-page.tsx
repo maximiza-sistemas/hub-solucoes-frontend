@@ -3,6 +3,7 @@ import { useDataStore, useAuthStore, useUsuarioImportJobStore } from '@/stores'
 import { Pagination, PageLoading, TableLoading, SearchableSelect } from '@/components/ui'
 import { UsuarioImportModal } from '@/components/usuario-import-modal'
 import { usuariosApi } from '@/services/api'
+import { getErrorMessage, getFieldErrors } from '@/lib/api-error'
 import { toast } from 'sonner'
 import type { Usuario, Role } from '@/types'
 
@@ -72,6 +73,8 @@ export function UsuariosPage() {
         password: '',
     })
     const [formErrors, setFormErrors] = useState<Record<string, string>>({})
+    /** Erro geral do modal de cadastro/edição (ex.: 409 "Email já cadastrado"). */
+    const [formError, setFormError] = useState<string | null>(null)
 
     useEffect(() => {
         Promise.all([fetchMunicipios(), fetchRoles(), fetchUsuarios({ page: 0, size: pageSize })]).finally(() => setInitialLoading(false))
@@ -178,6 +181,7 @@ export function UsuariosPage() {
     const resetForm = () => {
         setFormData({ nome: '', email: '', tipoUsuarioId: '', municipioId: '', password: '' })
         setFormErrors({})
+        setFormError(null)
         setShowPassword(false)
     }
 
@@ -197,6 +201,7 @@ export function UsuariosPage() {
             password: '',
         })
         setFormErrors({})
+        setFormError(null)
         setShowEditModal(true)
     }
 
@@ -230,6 +235,7 @@ export function UsuariosPage() {
         }
 
         setIsLoading(true)
+        setFormError(null)
         try {
             await addUsuario({
                 nome: formData.nome,
@@ -239,9 +245,13 @@ export function UsuariosPage() {
                 password: formData.password || undefined,
             })
             await refetchUsuarios()
+            toast.success('Usuário cadastrado com sucesso!')
             handleCloseModal()
         } catch (error) {
-            console.error('Erro ao criar usuário:', error)
+            // Mantém o modal aberto: o erro mais comum é "Email já cadastrado",
+            // e o operador precisa do formulário na tela para corrigir.
+            setFormError(getErrorMessage(error, 'Erro ao cadastrar usuário'))
+            setFormErrors(prev => ({ ...prev, ...getFieldErrors(error) }))
         } finally {
             setIsLoading(false)
         }
@@ -252,6 +262,7 @@ export function UsuariosPage() {
         if (!validateForm() || !selectedUsuario) return
 
         setIsLoading(true)
+        setFormError(null)
         try {
             await updateUsuario(selectedUsuario.id, {
                 nome: formData.nome,
@@ -260,10 +271,12 @@ export function UsuariosPage() {
                 municipioId: isSuperAdmin && formData.municipioId ? Number(formData.municipioId) : undefined,
             })
             await refetchUsuarios()
+            toast.success('Usuário atualizado com sucesso!')
             setShowEditModal(false)
             setSelectedUsuario(null)
         } catch (error) {
-            console.error('Erro ao atualizar usuário:', error)
+            setFormError(getErrorMessage(error, 'Erro ao atualizar usuário'))
+            setFormErrors(prev => ({ ...prev, ...getFieldErrors(error) }))
         } finally {
             setIsLoading(false)
         }
@@ -275,10 +288,12 @@ export function UsuariosPage() {
         try {
             await deleteUsuario(selectedUsuario.id)
             await refetchUsuarios()
+            toast.success('Usuário excluído com sucesso!')
             setShowDeleteModal(false)
             setSelectedUsuario(null)
         } catch (error) {
-            console.error('Erro ao excluir usuário:', error)
+            // Sem formulário para ancorar o erro: toast.
+            toast.error(getErrorMessage(error, 'Erro ao excluir usuário'))
         } finally {
             setIsLoading(false)
         }
@@ -308,8 +323,8 @@ export function UsuariosPage() {
             toast.success('Senha resetada com sucesso!')
             setShowResetPasswordModal(false)
             setSelectedUsuario(null)
-        } catch (error: any) {
-            toast.error(error.message || 'Erro ao resetar senha')
+        } catch (error) {
+            toast.error(getErrorMessage(error, 'Erro ao resetar senha'))
         } finally {
             setIsResettingPassword(false)
         }
@@ -323,8 +338,9 @@ export function UsuariosPage() {
                 await usuariosApi.ativar(usuario.id, accessToken)
             }
             await refetchUsuarios()
+            toast.success(usuario.ativo ? 'Usuário inativado.' : 'Usuário ativado.')
         } catch (error) {
-            console.error('Erro ao alterar status:', error)
+            toast.error(getErrorMessage(error, 'Erro ao alterar status do usuário'))
         }
     }
 
@@ -648,6 +664,13 @@ export function UsuariosPage() {
                                         <form onSubmit={handleSubmit}>
                                             <div className="modal-body p-4">
                                                 <div className="row g-4">
+                                                    {formError && (
+                                                        <div className="col-12">
+                                                            <div className="alert alert-danger d-flex align-items-center mb-0">
+                                                                <i className="bi bi-exclamation-triangle me-2"></i>{formError}
+                                                            </div>
+                                                        </div>
+                                                    )}
                                                     <div className="col-12">
                                                         <label className="form-label fw-medium">Nome <span className="text-danger">*</span></label>
                                                         <input type="text" className={`form-control form-control-lg ${formErrors.nome ? 'is-invalid' : ''}`} value={formData.nome} onChange={(e) => setFormData({ ...formData, nome: e.target.value })} />
@@ -724,6 +747,13 @@ export function UsuariosPage() {
                                         <form onSubmit={handleEditSubmit}>
                                             <div className="modal-body p-4">
                                                 <div className="row g-4">
+                                                    {formError && (
+                                                        <div className="col-12">
+                                                            <div className="alert alert-danger d-flex align-items-center mb-0">
+                                                                <i className="bi bi-exclamation-triangle me-2"></i>{formError}
+                                                            </div>
+                                                        </div>
+                                                    )}
                                                     <div className="col-12">
                                                         <label className="form-label fw-medium">Nome <span className="text-danger">*</span></label>
                                                         <input type="text" className={`form-control form-control-lg ${formErrors.nome ? 'is-invalid' : ''}`} value={formData.nome} onChange={(e) => setFormData({ ...formData, nome: e.target.value })} />

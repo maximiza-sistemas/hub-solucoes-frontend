@@ -3,6 +3,8 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useDataStore, useAuthStore, useUsuarioImportJobStore } from '@/stores'
 import { Pagination, PageLoading, TableLoading, SearchableSelect } from '@/components/ui'
 import { UsuarioImportModal } from '@/components/usuario-import-modal'
+import { getErrorMessage, getFieldErrors } from '@/lib/api-error'
+import { toast } from 'sonner'
 import type { Usuario } from '@/types'
 
 export function MunicipioUsuariosPage() {
@@ -51,6 +53,8 @@ export function MunicipioUsuariosPage() {
         tipoUsuarioId: '',
     })
     const [formErrors, setFormErrors] = useState<Record<string, string>>({})
+    /** Erro geral do modal de cadastro/edição (ex.: 409 "Email já cadastrado"). */
+    const [formError, setFormError] = useState<string | null>(null)
 
     useEffect(() => {
         Promise.all([
@@ -136,6 +140,7 @@ export function MunicipioUsuariosPage() {
     const handleOpenAddModal = () => {
         setFormData({ nome: '', email: '', password: '', tipoUsuarioId: '' })
         setFormErrors({})
+        setFormError(null)
         setShowAddModal(true)
     }
 
@@ -148,6 +153,7 @@ export function MunicipioUsuariosPage() {
             tipoUsuarioId: '',
         })
         setFormErrors({})
+        setFormError(null)
         setShowEditModal(true)
     }
 
@@ -168,6 +174,7 @@ export function MunicipioUsuariosPage() {
         }
 
         setIsLoading(true)
+        setFormError(null)
         try {
             await addUsuario({
                 nome: formData.nome,
@@ -177,8 +184,14 @@ export function MunicipioUsuariosPage() {
                 municipioId: munId,
             })
             await refetchUsuarios()
+            toast.success('Usuário cadastrado com sucesso!')
             setShowAddModal(false)
-        } catch (error) { console.error('Erro:', error) }
+        } catch (error) {
+            // Mantém o modal aberto: o erro mais comum é "Email já cadastrado",
+            // e o operador precisa do formulário na tela para corrigir.
+            setFormError(getErrorMessage(error, 'Erro ao cadastrar usuário'))
+            setFormErrors(prev => ({ ...prev, ...getFieldErrors(error) }))
+        }
         finally { setIsLoading(false) }
     }
 
@@ -186,15 +199,20 @@ export function MunicipioUsuariosPage() {
         e.preventDefault()
         if (!validateForm(false) || !selectedUsuario) return
         setIsLoading(true)
+        setFormError(null)
         try {
             await updateUsuario(selectedUsuario.id, {
                 nome: formData.nome,
                 email: formData.email,
             })
             await refetchUsuarios()
+            toast.success('Usuário atualizado com sucesso!')
             setShowEditModal(false)
             setSelectedUsuario(null)
-        } catch (error) { console.error('Erro:', error) }
+        } catch (error) {
+            setFormError(getErrorMessage(error, 'Erro ao atualizar usuário'))
+            setFormErrors(prev => ({ ...prev, ...getFieldErrors(error) }))
+        }
         finally { setIsLoading(false) }
     }
 
@@ -204,9 +222,13 @@ export function MunicipioUsuariosPage() {
         try {
             await deleteUsuario(selectedUsuario.id)
             await refetchUsuarios()
+            toast.success('Usuário excluído com sucesso!')
             setShowDeleteModal(false)
             setSelectedUsuario(null)
-        } catch (error) { console.error('Erro:', error) }
+        } catch (error) {
+            // Sem formulário para ancorar o erro: toast.
+            toast.error(getErrorMessage(error, 'Erro ao excluir usuário'))
+        }
         finally { setIsLoading(false) }
     }
 
@@ -417,6 +439,13 @@ export function MunicipioUsuariosPage() {
                         <button type="button" className="btn-close btn-close-white" onClick={() => setShowAddModal(false)}></button>
                     </div>
                     <form onSubmit={handleAddSubmit}><div className="modal-body p-4"><div className="row g-4">
+                            {formError && (
+                                <div className="col-12">
+                                    <div className="alert alert-danger d-flex align-items-center mb-0">
+                                        <i className="bi bi-exclamation-triangle me-2"></i>{formError}
+                                    </div>
+                                </div>
+                            )}
                         <div className="col-12">
                             <label className="form-label fw-medium">Nome Completo <span className="text-danger">*</span></label>
                             <input type="text" className={`form-control form-control-lg ${formErrors.nome ? 'is-invalid' : ''}`} placeholder="Digite o nome completo" value={formData.nome} onChange={(e) => setFormData({ ...formData, nome: e.target.value })} />
@@ -465,6 +494,13 @@ export function MunicipioUsuariosPage() {
                         <button type="button" className="btn-close btn-close-white" onClick={() => { setShowEditModal(false); setSelectedUsuario(null) }}></button>
                     </div>
                     <form onSubmit={handleEditSubmit}><div className="modal-body p-4"><div className="row g-4">
+                            {formError && (
+                                <div className="col-12">
+                                    <div className="alert alert-danger d-flex align-items-center mb-0">
+                                        <i className="bi bi-exclamation-triangle me-2"></i>{formError}
+                                    </div>
+                                </div>
+                            )}
                         <div className="col-12">
                             <label className="form-label fw-medium">Nome Completo <span className="text-danger">*</span></label>
                             <input type="text" className={`form-control form-control-lg ${formErrors.nome ? 'is-invalid' : ''}`} value={formData.nome} onChange={(e) => setFormData({ ...formData, nome: e.target.value })} />
