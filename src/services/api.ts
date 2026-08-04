@@ -12,6 +12,7 @@ import type {
     PageResponse,
     ImportJobProgress,
 } from '@/types'
+import { ApiError, type ApiErrorBody } from '@/lib/api-error'
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080'
 const CLIENT_ID = import.meta.env.VITE_CLIENT_ID ?? 'HUB'
@@ -25,6 +26,60 @@ interface RequestOptions {
 
 let isRefreshing = false
 let refreshPromise: Promise<{ accessToken: string; refreshToken: string }> | null = null
+
+/** Lê o corpo do erro uma única vez e o transforma num ApiError com status e campos. */
+async function readError(response: Response): Promise<ApiError> {
+    const body: ApiErrorBody = await response.json().catch(() => ({}))
+    return new ApiError(response.status, body)
+}
+
+/**
+ * O backend não configura um AuthenticationEntryPoint, então o Spring Security cai no
+ * Http403ForbiddenEntryPoint: token expirado devolve 403 com corpo VAZIO, não 401.
+ * Por isso não dá para restringir a renovação ao 401.
+ *
+ * Um 403 legítimo (TenantAccessDenied, @PreAuthorize) sempre vem do GlobalExceptionHandler
+ * com corpo preenchido — é o que distingue os dois casos. Sem essa distinção, um erro de
+ * permissão deslogava o operador em vez de mostrar a mensagem.
+ */
+function shouldAttemptRefresh(error: ApiError): boolean {
+    if (error.status === 401) return true
+    return error.status === 403 && !error.body.message && !error.body.error
+}
+
+const sessaoExpirada = () => new ApiError(401, { message: 'Sessão expirada. Faça login novamente.' })
+
+/** Renova os tokens. Devolve null quando não há refresh token — aí o erro original sobe. */
+async function tryRefreshTokens(): Promise<{ accessToken: string; refreshToken: string } | null> {
+    const { useAuthStore } = await import('@/stores/auth-store')
+    const refreshToken = useAuthStore.getState().refreshToken
+
+    if (!refreshToken) return null
+
+    if (isRefreshing && refreshPromise) {
+        // Já há uma renovação em voo: pega carona nela em vez de disparar outra.
+        try {
+            return await refreshPromise
+        } catch {
+            throw sessaoExpirada()
+        }
+    }
+
+    isRefreshing = true
+    refreshPromise = authApi.refresh(refreshToken)
+
+    try {
+        const tokens = await refreshPromise
+        useAuthStore.getState().updateTokens(tokens.accessToken, tokens.refreshToken)
+        return tokens
+    } catch {
+        useAuthStore.getState().logout()
+        throw sessaoExpirada()
+    } finally {
+        isRefreshing = false
+        refreshPromise = null
+    }
+}
 
 async function request<T>(endpoint: string, options: RequestOptions = {}): Promise<T> {
     const { method = 'GET', body, token, params } = options
@@ -61,67 +116,36 @@ async function request<T>(endpoint: string, options: RequestOptions = {}): Promi
 
     const response = await fetch(url, config)
 
-    if ((response.status === 401 || response.status === 403) && token) {
-        // Try refreshing the token
-        const { useAuthStore } = await import('@/stores/auth-store')
-        const refreshToken = useAuthStore.getState().refreshToken
+    if (response.ok) {
+        // Handle 204 No Content
+        if (response.status === 204) {
+            return undefined as T
+        }
+        return response.json()
+    }
 
-        if (refreshToken && !isRefreshing) {
-            isRefreshing = true
-            refreshPromise = authApi.refresh(refreshToken)
+    const apiError = await readError(response)
 
-            try {
-                const tokens = await refreshPromise
-                useAuthStore.getState().updateTokens(tokens.accessToken, tokens.refreshToken)
-                isRefreshing = false
-                refreshPromise = null
+    if (token && shouldAttemptRefresh(apiError)) {
+        const tokens = await tryRefreshTokens()
 
-                // Retry original request with new token
-                headers['Authorization'] = `Bearer ${tokens.accessToken}`
-                const retryConfig: RequestInit = { method, headers }
-                if (body) retryConfig.body = JSON.stringify(body)
-                const retryResponse = await fetch(url, retryConfig)
-                if (!retryResponse.ok) {
-                    const error = await retryResponse.json().catch(() => ({ error: 'Erro desconhecido' }))
-                    throw new Error(error.message || error.error || 'Erro na requisição')
-                }
-                return retryResponse.json()
-            } catch {
-                isRefreshing = false
-                refreshPromise = null
-                useAuthStore.getState().logout()
-                throw new Error('Sessão expirada. Faça login novamente.')
+        if (tokens) {
+            headers['Authorization'] = `Bearer ${tokens.accessToken}`
+            const retryConfig: RequestInit = { method, headers }
+            if (body) retryConfig.body = JSON.stringify(body)
+
+            const retryResponse = await fetch(url, retryConfig)
+            if (!retryResponse.ok) {
+                throw await readError(retryResponse)
             }
-        } else if (isRefreshing && refreshPromise) {
-            // Wait for the refresh to complete, then retry
-            try {
-                const tokens = await refreshPromise
-                headers['Authorization'] = `Bearer ${tokens.accessToken}`
-                const retryConfig: RequestInit = { method, headers }
-                if (body) retryConfig.body = JSON.stringify(body)
-                const retryResponse = await fetch(url, retryConfig)
-                if (!retryResponse.ok) {
-                    const error = await retryResponse.json().catch(() => ({ error: 'Erro desconhecido' }))
-                    throw new Error(error.message || error.error || 'Erro na requisição')
-                }
-                return retryResponse.json()
-            } catch {
-                throw new Error('Sessão expirada. Faça login novamente.')
+            if (retryResponse.status === 204) {
+                return undefined as T
             }
+            return retryResponse.json()
         }
     }
 
-    if (!response.ok) {
-        const error = await response.json().catch(() => ({ error: 'Erro desconhecido' }))
-        throw new Error(error.message || error.error || 'Erro na requisição')
-    }
-
-    // Handle 204 No Content
-    if (response.status === 204) {
-        return undefined as T
-    }
-
-    return response.json()
+    throw apiError
 }
 
 async function uploadFile<T>(endpoint: string, file: File, fieldName: string, token?: string | null, method: 'POST' | 'PUT' = 'POST'): Promise<T> {
@@ -138,55 +162,26 @@ async function uploadFile<T>(endpoint: string, file: File, fieldName: string, to
     const url = `${API_BASE_URL}${endpoint}`
     const response = await fetch(url, { method, headers, body: formData })
 
-    if ((response.status === 401 || response.status === 403) && token) {
-        const { useAuthStore } = await import('@/stores/auth-store')
-        const refreshToken = useAuthStore.getState().refreshToken
+    if (response.ok) {
+        return response.json()
+    }
 
-        if (refreshToken && !isRefreshing) {
-            isRefreshing = true
-            refreshPromise = authApi.refresh(refreshToken)
+    const apiError = await readError(response)
 
-            try {
-                const tokens = await refreshPromise
-                useAuthStore.getState().updateTokens(tokens.accessToken, tokens.refreshToken)
-                isRefreshing = false
-                refreshPromise = null
+    if (token && shouldAttemptRefresh(apiError)) {
+        const tokens = await tryRefreshTokens()
 
-                headers['Authorization'] = `Bearer ${tokens.accessToken}`
-                const retryResponse = await fetch(url, { method, headers, body: formData })
-                if (!retryResponse.ok) {
-                    const error = await retryResponse.json().catch(() => ({ error: 'Erro desconhecido' }))
-                    throw new Error(error.message || error.error || 'Erro na requisição')
-                }
-                return retryResponse.json()
-            } catch {
-                isRefreshing = false
-                refreshPromise = null
-                useAuthStore.getState().logout()
-                throw new Error('Sessão expirada. Faça login novamente.')
+        if (tokens) {
+            headers['Authorization'] = `Bearer ${tokens.accessToken}`
+            const retryResponse = await fetch(url, { method, headers, body: formData })
+            if (!retryResponse.ok) {
+                throw await readError(retryResponse)
             }
-        } else if (isRefreshing && refreshPromise) {
-            try {
-                const tokens = await refreshPromise
-                headers['Authorization'] = `Bearer ${tokens.accessToken}`
-                const retryResponse = await fetch(url, { method, headers, body: formData })
-                if (!retryResponse.ok) {
-                    const error = await retryResponse.json().catch(() => ({ error: 'Erro desconhecido' }))
-                    throw new Error(error.message || error.error || 'Erro na requisição')
-                }
-                return retryResponse.json()
-            } catch {
-                throw new Error('Sessão expirada. Faça login novamente.')
-            }
+            return retryResponse.json()
         }
     }
 
-    if (!response.ok) {
-        const error = await response.json().catch(() => ({ error: 'Erro desconhecido' }))
-        throw new Error(error.message || error.error || 'Erro na requisição')
-    }
-
-    return response.json()
+    throw apiError
 }
 
 // Auth API
